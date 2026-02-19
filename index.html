@@ -1725,26 +1725,43 @@ function useStore(){
   const _sbTimer=useRef(null);
   const _sbSkipSave=useRef(false);
 
-  /* Load from Supabase on start */
+  /* Helper: compute data richness score */
+  const _dataScore=(d)=>{
+    if(!d||typeof d!=='object')return 0;
+    return (d.projects||[]).length*10+(d.clients||[]).length*5+(d.persons||[]).length*3
+      +(d.projects||[]).reduce((s,p)=>(s+(p.payments||[]).length+(p.tasks||[]).length+(p.phases||[]).length+(p.overheads||[]).length+(p.timeEntries||[]).length),0);
+  };
+
+  /* Load from Supabase on start — SMART MERGE: prefer richer dataset */
   useEffect(()=>{
     if(!_sb){setSbStatus('offline');setSbLoaded(true);return;}
     setSbStatus('loading');
     _sb.from('app_data').select('payload').eq('id',1).single()
       .then(({data:row,error})=>{
         if(!error&&row&&row.payload&&typeof row.payload==='object'&&Object.keys(row.payload).length>0){
-          _sbSkipSave.current=true;
-          setData(prev=>{
-            /* apply migrations to loaded data same as localStorage */
-            const merged={...row.payload};
-            return merged;
-          });
-          setTimeout(()=>{_sbSkipSave.current=false;},500);
+          const sbData=row.payload;
+          const lsScore=_dataScore(data);
+          const sbScore=_dataScore(sbData);
+          console.log('[Sync] localStorage score='+lsScore+' ('+((data.projects||[]).length)+' projects), Supabase score='+sbScore+' ('+((sbData.projects||[]).length)+' projects)');
+          if(sbScore>lsScore){
+            /* Supabase richer — use it */
+            _sbSkipSave.current=true;
+            setData(prev=>({...sbData}));
+            setTimeout(()=>{_sbSkipSave.current=false;},500);
+            console.log('[Sync] Using Supabase data (richer)');
+          } else if(lsScore>sbScore){
+            /* localStorage richer — keep it, it will auto-push to Supabase via save effect */
+            console.log('[Sync] Keeping localStorage data (richer), will push to Supabase');
+          } else {
+            console.log('[Sync] Equal scores, keeping localStorage data');
+          }
           setSbStatus('online');
         } else if(error){
           console.warn('Supabase load error:',error);
           setSbStatus('error');
         } else {
           /* empty DB — push current localStorage data to Supabase */
+          console.log('[Sync] Supabase empty, will push localStorage data');
           setSbStatus('online');
         }
         setSbLoaded(true);
@@ -1766,13 +1783,20 @@ function useStore(){
     },2000);
   },[data,sbLoaded]);
 
-  /* Re-init Supabase connection (called from config modal) */
+  /* Re-init Supabase connection (called from config modal) — also uses smart merge */
   const reconnectSb=()=>{_sb=_initSb();if(_sb){setSbStatus('loading');setSbLoaded(false);
     _sb.from('app_data').select('payload').eq('id',1).single()
       .then(({data:row,error})=>{
         if(!error&&row&&row.payload&&Object.keys(row.payload).length>0){
-          _sbSkipSave.current=true;setData(row.payload);
-          setTimeout(()=>{_sbSkipSave.current=false;},500);
+          const sbScore=_dataScore(row.payload);
+          const lsScore=_dataScore(data);
+          if(sbScore>lsScore){
+            _sbSkipSave.current=true;setData(row.payload);
+            setTimeout(()=>{_sbSkipSave.current=false;},500);
+            console.log('[Reconnect] Using Supabase data (richer)');
+          } else {
+            console.log('[Reconnect] Keeping localStorage data (richer or equal)');
+          }
         }
         setSbStatus('online');setSbLoaded(true);
       }).catch(()=>{setSbStatus('error');setSbLoaded(true);});
