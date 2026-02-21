@@ -4658,7 +4658,7 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
     {showEditClient&&client&&<EditClientModal client={client} store={store} onClose={()=>setShowEditClient(false)} onCreateProject={()=>{setShowEditClient(false);setShowNewProjClient(true);}} onGoProject={goProject?(id)=>{setShowEditClient(false);goProject(id);}:null}/>}
     {showNewProjClient&&client&&<NewProjectModal store={store} onClose={()=>setShowNewProjClient(false)} initialClientId={client.id}/>}
     <div className="tab-bar">
-      {['overview','phases','tracks','competencies','admin_scale','documents','financials','metrics_map'].map(t=><div key={t} className={`tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{{overview:'Обзор',phases:'Фазы',tracks:'Треки / Issue Tree',competencies:'Компетенции',admin_scale:'Админ.шкала',documents:'Документы',financials:'Финансы',metrics_map:'Карта метрик'}[t]}</div>)}
+      {['overview','tracks','competencies','admin_scale','documents','financials','metrics_map'].map(t=><div key={t} className={`tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{{overview:'Обзор',tracks:'Треки / Issue Tree',competencies:'Команда',admin_scale:'Админ.шкала',documents:'Документы',financials:'Финансы',metrics_map:'Карта метрик'}[t]}</div>)}
     </div>
 
     {tab==='overview'&&<div>
@@ -4709,94 +4709,8 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
           </div>
         </div>;
       })()}
-      {(()=>{const phases=p.phases||[];const totalStages=phases.reduce((s,ph)=>s+(ph.stages||[]).length,0);const doneStages=phases.reduce((s,ph)=>s+(ph.stages||[]).filter(st=>st.status==='COMPLETED').length,0);const ipStages=phases.reduce((s,ph)=>s+(ph.stages||[]).filter(st=>st.status==='IN_PROGRESS').length,0);const pct=totalStages>0?Math.round((doneStages+ipStages*0.5)/totalStages*100):0;return <div className="dd-progress"><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><span style={{fontSize:13,fontWeight:600}}>Прогресс Double Diamond</span><span style={{fontSize:13,fontWeight:700,color:'var(--accent)'}}>{pct}%</span></div><div className="progress-bar" style={{height:10,marginTop:6}}><div className="progress-fill" style={{width:pct+'%',background:'linear-gradient(90deg,var(--accent),var(--emerald))'}}></div></div><div className="dd-progress-bar">{phases.map(ph=>{const st=ph.stages||[];return st.map(s=>{const sd=calcStageDays(s);return <div key={s.id} className={'dd-progress-seg '+(s.status==='COMPLETED'?'done':s.status==='IN_PROGRESS'?'ip':'ns')} title={ph.phase_name+' → '+s.stage_name+(sd?' ('+sd+' дн.)':'')}>{s.stage_name.substring(0,3)}{sd>0&&<span style={{fontSize:7,marginLeft:1}}>{sd}д</span>}</div>;});})}</div><div className="dd-phase-dur">{phases.map(ph=>{const d=calcPhaseDays(ph);return d>0?<span key={ph.id} className={'dd-phase-chip '+(ph.status==='COMPLETED'?'done':'ip')}>{ph.phase_name.split('(')[0].trim()}: <span className="chip-days">{d} дн.</span></span>:null;})}</div></div>;})()}
-      {(()=>{
-      const buf=calcProjectBuffer(p);
-      if(!p.start_date)return <div className="buf-panel"><div className="buf-title"><span>Диагональный буфер проекта</span><span className="buf-status warn">Нет даты старта</span></div><div style={{fontSize:11,color:"var(--text2)"}}>Укажите дату старта и окончания проекта для расчёта буфера</div></div>;
-      const healthLabel={ok:"В норме",warn:"Внимание",danger:"Критично",overdue:"Просрочка"};
-      const healthIcon={ok:"✅",warn:"\u26A0\uFE0F",danger:"\uD83D\uDD34",overdue:"\uD83D\uDCA5"};
-      return <div className="buf-panel">
-        <div className="buf-title"><span>Диагональный буфер проекта</span><span className={"buf-status "+buf.health}>{healthIcon[buf.health]} {healthLabel[buf.health]}</span></div>
-        <div style={{display:"flex",gap:16,marginBottom:10,flexWrap:"wrap"}}>
-          <div style={{fontSize:11}}><span style={{color:"var(--text2)"}}>Длительность: </span><b>{buf.totalWeeks} нед. ({buf.totalDays} дн.)</b></div>
-          <div style={{fontSize:11}}><span style={{color:"var(--text2)"}}>Прошло: </span><b>{buf.elapsedDays} дн.</b></div>
-          <div style={{fontSize:11}}><span style={{color:"var(--text2)"}}>Осталось: </span><b style={{color:buf.remainingDays<14?"var(--red)":"var(--green)"}}>{buf.remainingDays} дн.</b></div>
-          <div style={{fontSize:11}}><span style={{color:"var(--text2)"}}>Буфер: </span><b>{buf.totalBuf} дн.</b> <span style={{color:buf.bufPct>66?"var(--red)":buf.bufPct>33?"var(--yellow)":"var(--green)"}}>({buf.bufPct}% израсходовано)</span></div>
-          {buf.totalOverdue>0&&<div style={{fontSize:11,color:"var(--red)",fontWeight:700}}>Просрочка: +{buf.totalOverdue} дн.</div>}
-        </div>
-        <div className="buf-bar-wrap">
-          {(()=>{const wPct=Math.min(100,Math.round((buf.totalDays-buf.totalBuf)/buf.totalDays*100));const bPct=Math.round(buf.totalBuf/buf.totalDays*100);const ePct=Math.min(100,Math.round(buf.elapsedDays/buf.totalDays*100));return <React.Fragment><div className="buf-bar-work" style={{width:wPct+"%",background:"var(--accent)"}}><span className="buf-bar-label">Работа {buf.totalDays-buf.totalBuf}д</span></div><div className="buf-bar-buf" style={{width:bPct+"%",left:wPct+"%",background:buf.bufPct>66?"var(--red)":buf.bufPct>33?"var(--yellow)":"var(--green)"}}><span className="buf-bar-label">Буфер {buf.totalBuf}д</span></div><div className="buf-bar-cursor" style={{left:Math.min(99,ePct)+"%"}} title={"Сегодня: день "+buf.elapsedDays}></div></React.Fragment>;})()}
-        </div>
-        <div className="buf-legend"><div className="buf-legend-item"><div className="buf-legend-dot" style={{background:"var(--accent)"}}></div>Рабочие дни</div><div className="buf-legend-item"><div className="buf-legend-dot" style={{background:"var(--green)"}}></div>Буфер свободен</div><div className="buf-legend-item"><div className="buf-legend-dot" style={{background:"var(--yellow)"}}></div>Буфер частично</div><div className="buf-legend-item"><div className="buf-legend-dot" style={{background:"var(--red)"}}></div>Буфер исчерпан</div><div className="buf-legend-item"><div className="buf-legend-dot" style={{background:"var(--text)"}}></div>Сегодня</div></div>
-        <div className="buf-stages">
-          {buf.phases.map(ph=>{
-            const pctFill=ph.norm>0?Math.min(100,Math.round(ph.actual/ph.norm*100)):0;
-            const workPct=ph.norm>0?Math.round(ph.work/ph.norm*100):67;
-            const fillColor=ph.overdue>0?"var(--red)":ph.bufUsed>0?(ph.bufRemain<ph.buffer*0.33?"var(--yellow)":"var(--accent)"):"var(--accent)";
-            return <div key={ph.code}>
-              <div className="buf-stage-row">
-                <div className="buf-stage-name" style={{fontWeight:600}}>{ph.name.split("(")[0].trim()}</div>
-                <div className="buf-stage-bar-wrap" style={{height:12}}>
-                  <div style={{position:"absolute",left:0,top:0,width:workPct+"%",height:"100%",background:"var(--accent)",opacity:.2,borderRadius:5}}></div>
-                  <div style={{position:"absolute",left:workPct+"%",top:0,width:(100-workPct)+"%",height:"100%",background:ph.bufRemain<ph.buffer*0.33?"var(--red)":"var(--green)",opacity:.15,borderRadius:"0 5px 5px 0"}}></div>
-                  <div className="buf-stage-fill" style={{width:Math.min(100,pctFill)+"%",background:fillColor}}></div>
-                </div>
-                <div className="buf-stage-nums">{ph.actual}д / {ph.norm}д {ph.overdue>0&&<span style={{color:"var(--red)",fontWeight:700}}>+{ph.overdue}</span>}</div>
-              </div>
-              {ph.stages.map(st=>{
-                const sPct=st.norm>0?Math.min(100,Math.round(st.actual/st.norm*100)):0;
-                const sColor=st.overdue>0?"var(--red)":st.actual>st.work?"var(--yellow)":"var(--accent)";
-                return <div key={st.code} className="buf-stage-row" style={{paddingLeft:16}}>
-                  <div className="buf-stage-name" style={{fontSize:10,color:"var(--text2)"}}>{st.name}</div>
-                  <div className="buf-stage-bar-wrap" style={{height:6}}>
-                    <div className="buf-stage-fill" style={{width:Math.min(100,sPct)+"%",background:sColor}}></div>
-                  </div>
-                  <div className="buf-stage-nums" style={{fontSize:9}}>{st.actual>0?st.actual+"д":"—"} / {st.norm}д {st.overdue>0&&<span style={{color:"var(--red)"}}>+{st.overdue}</span>}</div>
-                </div>;
-              })}
-            </div>;
-          })}
-        </div>
-      </div>;
-    })()}
-      <div className="stats-grid">
-        <div className="stat-card"><div className="label">Команда</div><div className="value accent-c">{(p.assignments||[]).length}</div></div>
-        <div className="stat-card"><div className="label">Треков</div><div className="value">{(p.tracks||[]).length}</div></div>
-        <div className="stat-card"><div className="label">Задач</div><div className="value yellow-c">{(p.tasks||[]).length}</div></div>
-        <div className="stat-card"><div className="label">Блокеров</div><div className="value red-c">{openBlockers.length}</div></div>
-        <div className="stat-card"><div className="label">Админ.шкала</div><div className="value" style={{color:'var(--accent)'}}>{calcAdminScale(p).pct}%</div></div>
-      </div>
-      {(()=>{
-        const pnl=calcPnlHealth(p,store.data.persons);
-        return <div className="pnl-mini">
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-            <span style={{fontSize:13,fontWeight:600}}>P&L проекта</span>
-            <span className={'pnl-health '+pnl.health}>{pnl.health==='green'?'✅':pnl.health==='yellow'?'\u26A0\uFE0F':pnl.health==='red'?'\uD83D\uDD34':'➖'} {pnl.label}{pnl.health!=='gray'&&(' '+pnl.dirtyPct+'%')}</span>
-          </div>
-          {pnl.health==='gray'?<div style={{fontSize:11,color:'var(--text2)'}}>Укажите стоимость контракта для расчёта P&L</div>:
-          <div>
-            <div className="pnl-row"><span style={{color:'var(--text2)'}}>Выручка нетто</span><span className="pnl-val">{fmt(pnl.revNet)} ₽</span></div>
-            <div className="pnl-row"><span style={{color:'var(--text2)'}}>Косты произв. (C1-C4)</span><span className="pnl-val" style={{color:'var(--red)'}}>−{fmt(pnl.costProd)} ₽</span></div>
-            <div className="pnl-row"><span style={{color:'var(--text2)'}}>Накладные</span><span className="pnl-val" style={{color:'var(--violet)'}}>−{fmt(pnl.ohTotal)} ₽</span></div>
-            <div className="pnl-row total"><span>Грязная валовая прибыль</span><span className="pnl-val" style={{color:pnl.dirtyProfit>=0?'var(--green)':'var(--red)'}}>{fmt(pnl.dirtyProfit)} ₽ ({pnl.dirtyPct}%)</span></div>
-            <div className="pnl-row"><span style={{color:'var(--text2)'}}>Косты C5</span><span className="pnl-val" style={{color:'var(--amber)'}}>−{fmt(pnl.costAll-pnl.costProd)} ₽</span></div>
-            <div className="pnl-row total"><span>Чистая валовая прибыль</span><span className="pnl-val" style={{color:pnl.cleanProfit>=0?'var(--green)':'var(--red)'}}>{fmt(pnl.cleanProfit)} ₽ ({pnl.cleanPct}%)</span></div>
-            <div style={{marginTop:6,fontSize:10,color:'var(--text2)'}}>Норма операц. рентабельности: ≥75-80% от нетто</div>
-          </div>}
-        </div>;
-      })()}
-      <div className="card"><div className="card-title" style={{display:'flex',justifyContent:'space-between'}}>Команда <button className="btn btn-primary btn-sm" onClick={()=>setShowAssign(true)}>+ Назначить</button></div>
-        {(p.assignments||[]).length===0?<div className="empty">Нет назначений</div>:<table><thead><tr><th>Имя</th><th>Должность</th><th>Роль</th><th></th></tr></thead><tbody>{p.assignments.map((a,i)=><tr key={i}><td>{a.person_name}</td><td style={{color:'var(--text2)'}}>{a.person_position||'—'}</td><td>{a.role_code}</td><td><button className="btn btn-sm" style={{color:'var(--red)',background:'transparent',border:'none',cursor:'pointer',fontSize:14}} onClick={()=>store.removeAssignment(p.id,a.id)} title="Снять назначение">×</button></td></tr>)}</tbody></table>}
-      </div>
-      {openBlockers.length>0&&<div className="card"><div className="card-title">Блокеры</div>{openBlockers.map((b,i)=><div key={i} className="blocker-item" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><span style={{color:'var(--red)',fontWeight:600,fontSize:11}}>{b.severity}</span> {b.description}</div><button className="btn btn-sm btn-secondary" onClick={()=>store.resolveBlocker(p.id,b.id)}>Снять</button></div>)}</div>}
-      {showAssign&&<Modal onClose={()=>setShowAssign(false)}><h2>Назначить на проект</h2>
-        <div className="form-group"><label>Сотрудник</label><select value={af.person_id} onChange={e=>setAf(p=>({...p,person_id:e.target.value}))}><option value="">—</option>{store.data.persons.filter(pe=>!assignedIds.has(pe.id)).map(pe=><option key={pe.id} value={pe.id}>{pe.name} — {pe.position||''}</option>)}</select></div>
-        <div className="form-group"><label>Роль</label><select value={af.role_code} onChange={e=>setAf(p=>({...p,role_code:e.target.value}))}><option>PM</option><option>ANALYST</option><option>CONSULTANT</option><option>LEAD</option><option>EXPERT</option></select></div>
-        <div className="form-actions"><button className="btn btn-secondary" onClick={()=>setShowAssign(false)}>Отмена</button><button className="btn btn-primary" onClick={()=>{if(af.person_id){store.addAssignment(p.id,af.person_id,af.role_code);setShowAssign(false);}}}>Назначить</button></div>
-      </Modal>}
-    </div>}
 
-    {tab==='phases'&&<div>
+      {/* === Phases (moved from tab) === */}
       {/* Header buttons */}
       <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:12}}>
         {p.status==='ACTIVE'&&<button className="btn btn-primary btn-sm" onClick={()=>store.advanceStage(p.id)}>Продвинуть этап →</button>}
@@ -5047,6 +4961,83 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
         <button className="btn btn-primary" onClick={()=>{store.updatePhaseDoc(p.id,editPhDoc.phaseCode,editPhDoc.key,{status:editPhDoc.status,url:editPhDoc.url,file_name:editPhDoc.file_name,notes:editPhDoc.notes});setEditPhDoc(null);}}>Сохранить</button>
       </div>
     </Modal>}
+
+      {(()=>{const phases=p.phases||[];const totalStages=phases.reduce((s,ph)=>s+(ph.stages||[]).length,0);const doneStages=phases.reduce((s,ph)=>s+(ph.stages||[]).filter(st=>st.status==='COMPLETED').length,0);const ipStages=phases.reduce((s,ph)=>s+(ph.stages||[]).filter(st=>st.status==='IN_PROGRESS').length,0);const pct=totalStages>0?Math.round((doneStages+ipStages*0.5)/totalStages*100):0;return <div className="dd-progress"><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><span style={{fontSize:13,fontWeight:600}}>Прогресс Double Diamond</span><span style={{fontSize:13,fontWeight:700,color:'var(--accent)'}}>{pct}%</span></div><div className="progress-bar" style={{height:10,marginTop:6}}><div className="progress-fill" style={{width:pct+'%',background:'linear-gradient(90deg,var(--accent),var(--emerald))'}}></div></div><div className="dd-progress-bar">{phases.map(ph=>{const st=ph.stages||[];return st.map(s=>{const sd=calcStageDays(s);return <div key={s.id} className={'dd-progress-seg '+(s.status==='COMPLETED'?'done':s.status==='IN_PROGRESS'?'ip':'ns')} title={ph.phase_name+' → '+s.stage_name+(sd?' ('+sd+' дн.)':'')}>{s.stage_name.substring(0,3)}{sd>0&&<span style={{fontSize:7,marginLeft:1}}>{sd}д</span>}</div>;});})}</div><div className="dd-phase-dur">{phases.map(ph=>{const d=calcPhaseDays(ph);return d>0?<span key={ph.id} className={'dd-phase-chip '+(ph.status==='COMPLETED'?'done':'ip')}>{ph.phase_name.split('(')[0].trim()}: <span className="chip-days">{d} дн.</span></span>:null;})}</div></div>;})()}
+      {(()=>{
+      const buf=calcProjectBuffer(p);
+      if(!p.start_date)return <div className="buf-panel"><div className="buf-title"><span>Диагональный буфер проекта</span><span className="buf-status warn">Нет даты старта</span></div><div style={{fontSize:11,color:"var(--text2)"}}>Укажите дату старта и окончания проекта для расчёта буфера</div></div>;
+      const healthLabel={ok:"В норме",warn:"Внимание",danger:"Критично",overdue:"Просрочка"};
+      const healthIcon={ok:"✅",warn:"\u26A0\uFE0F",danger:"\uD83D\uDD34",overdue:"\uD83D\uDCA5"};
+      return <div className="buf-panel">
+        <div className="buf-title"><span>Диагональный буфер проекта</span><span className={"buf-status "+buf.health}>{healthIcon[buf.health]} {healthLabel[buf.health]}</span></div>
+        <div style={{display:"flex",gap:16,marginBottom:10,flexWrap:"wrap"}}>
+          <div style={{fontSize:11}}><span style={{color:"var(--text2)"}}>Длительность: </span><b>{buf.totalWeeks} нед. ({buf.totalDays} дн.)</b></div>
+          <div style={{fontSize:11}}><span style={{color:"var(--text2)"}}>Прошло: </span><b>{buf.elapsedDays} дн.</b></div>
+          <div style={{fontSize:11}}><span style={{color:"var(--text2)"}}>Осталось: </span><b style={{color:buf.remainingDays<14?"var(--red)":"var(--green)"}}>{buf.remainingDays} дн.</b></div>
+          <div style={{fontSize:11}}><span style={{color:"var(--text2)"}}>Буфер: </span><b>{buf.totalBuf} дн.</b> <span style={{color:buf.bufPct>66?"var(--red)":buf.bufPct>33?"var(--yellow)":"var(--green)"}}>({buf.bufPct}% израсходовано)</span></div>
+          {buf.totalOverdue>0&&<div style={{fontSize:11,color:"var(--red)",fontWeight:700}}>Просрочка: +{buf.totalOverdue} дн.</div>}
+        </div>
+        <div className="buf-bar-wrap">
+          {(()=>{const wPct=Math.min(100,Math.round((buf.totalDays-buf.totalBuf)/buf.totalDays*100));const bPct=Math.round(buf.totalBuf/buf.totalDays*100);const ePct=Math.min(100,Math.round(buf.elapsedDays/buf.totalDays*100));return <React.Fragment><div className="buf-bar-work" style={{width:wPct+"%",background:"var(--accent)"}}><span className="buf-bar-label">Работа {buf.totalDays-buf.totalBuf}д</span></div><div className="buf-bar-buf" style={{width:bPct+"%",left:wPct+"%",background:buf.bufPct>66?"var(--red)":buf.bufPct>33?"var(--yellow)":"var(--green)"}}><span className="buf-bar-label">Буфер {buf.totalBuf}д</span></div><div className="buf-bar-cursor" style={{left:Math.min(99,ePct)+"%"}} title={"Сегодня: день "+buf.elapsedDays}></div></React.Fragment>;})()}
+        </div>
+        <div className="buf-legend"><div className="buf-legend-item"><div className="buf-legend-dot" style={{background:"var(--accent)"}}></div>Рабочие дни</div><div className="buf-legend-item"><div className="buf-legend-dot" style={{background:"var(--green)"}}></div>Буфер свободен</div><div className="buf-legend-item"><div className="buf-legend-dot" style={{background:"var(--yellow)"}}></div>Буфер частично</div><div className="buf-legend-item"><div className="buf-legend-dot" style={{background:"var(--red)"}}></div>Буфер исчерпан</div><div className="buf-legend-item"><div className="buf-legend-dot" style={{background:"var(--text)"}}></div>Сегодня</div></div>
+        <div className="buf-stages">
+          {buf.phases.map(ph=>{
+            const pctFill=ph.norm>0?Math.min(100,Math.round(ph.actual/ph.norm*100)):0;
+            const workPct=ph.norm>0?Math.round(ph.work/ph.norm*100):67;
+            const fillColor=ph.overdue>0?"var(--red)":ph.bufUsed>0?(ph.bufRemain<ph.buffer*0.33?"var(--yellow)":"var(--accent)"):"var(--accent)";
+            return <div key={ph.code}>
+              <div className="buf-stage-row">
+                <div className="buf-stage-name" style={{fontWeight:600}}>{ph.name.split("(")[0].trim()}</div>
+                <div className="buf-stage-bar-wrap" style={{height:12}}>
+                  <div style={{position:"absolute",left:0,top:0,width:workPct+"%",height:"100%",background:"var(--accent)",opacity:.2,borderRadius:5}}></div>
+                  <div style={{position:"absolute",left:workPct+"%",top:0,width:(100-workPct)+"%",height:"100%",background:ph.bufRemain<ph.buffer*0.33?"var(--red)":"var(--green)",opacity:.15,borderRadius:"0 5px 5px 0"}}></div>
+                  <div className="buf-stage-fill" style={{width:Math.min(100,pctFill)+"%",background:fillColor}}></div>
+                </div>
+                <div className="buf-stage-nums">{ph.actual}д / {ph.norm}д {ph.overdue>0&&<span style={{color:"var(--red)",fontWeight:700}}>+{ph.overdue}</span>}</div>
+              </div>
+              {ph.stages.map(st=>{
+                const sPct=st.norm>0?Math.min(100,Math.round(st.actual/st.norm*100)):0;
+                const sColor=st.overdue>0?"var(--red)":st.actual>st.work?"var(--yellow)":"var(--accent)";
+                return <div key={st.code} className="buf-stage-row" style={{paddingLeft:16}}>
+                  <div className="buf-stage-name" style={{fontSize:10,color:"var(--text2)"}}>{st.name}</div>
+                  <div className="buf-stage-bar-wrap" style={{height:6}}>
+                    <div className="buf-stage-fill" style={{width:Math.min(100,sPct)+"%",background:sColor}}></div>
+                  </div>
+                  <div className="buf-stage-nums" style={{fontSize:9}}>{st.actual>0?st.actual+"д":"—"} / {st.norm}д {st.overdue>0&&<span style={{color:"var(--red)"}}>+{st.overdue}</span>}</div>
+                </div>;
+              })}
+            </div>;
+          })}
+        </div>
+      </div>;
+    })()}
+      <div className="stats-grid">
+        <div className="stat-card"><div className="label">Команда</div><div className="value accent-c">{(p.assignments||[]).length}</div></div>
+        <div className="stat-card"><div className="label">Треков</div><div className="value">{(p.tracks||[]).length}</div></div>
+        <div className="stat-card"><div className="label">Задач</div><div className="value yellow-c">{(p.tasks||[]).length}</div></div>
+        <div className="stat-card"><div className="label">Блокеров</div><div className="value red-c">{openBlockers.length}</div></div>
+        <div className="stat-card"><div className="label">Админ.шкала</div><div className="value" style={{color:'var(--accent)'}}>{calcAdminScale(p).pct}%</div></div>
+      </div>
+      {(()=>{
+        const pnl=calcPnlHealth(p,store.data.persons);
+        return <div className="pnl-mini">
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <span style={{fontSize:13,fontWeight:600}}>P&L проекта</span>
+            <span className={'pnl-health '+pnl.health}>{pnl.health==='green'?'✅':pnl.health==='yellow'?'\u26A0\uFE0F':pnl.health==='red'?'\uD83D\uDD34':'➖'} {pnl.label}{pnl.health!=='gray'&&(' '+pnl.dirtyPct+'%')}</span>
+          </div>
+          {pnl.health==='gray'?<div style={{fontSize:11,color:'var(--text2)'}}>Укажите стоимость контракта для расчёта P&L</div>:
+          <div>
+            <div className="pnl-row"><span style={{color:'var(--text2)'}}>Выручка нетто</span><span className="pnl-val">{fmt(pnl.revNet)} ₽</span></div>
+            <div className="pnl-row"><span style={{color:'var(--text2)'}}>Косты произв. (C1-C4)</span><span className="pnl-val" style={{color:'var(--red)'}}>−{fmt(pnl.costProd)} ₽</span></div>
+            <div className="pnl-row"><span style={{color:'var(--text2)'}}>Накладные</span><span className="pnl-val" style={{color:'var(--violet)'}}>−{fmt(pnl.ohTotal)} ₽</span></div>
+            <div className="pnl-row total"><span>Грязная валовая прибыль</span><span className="pnl-val" style={{color:pnl.dirtyProfit>=0?'var(--green)':'var(--red)'}}>{fmt(pnl.dirtyProfit)} ₽ ({pnl.dirtyPct}%)</span></div>
+            <div className="pnl-row"><span style={{color:'var(--text2)'}}>Косты C5</span><span className="pnl-val" style={{color:'var(--amber)'}}>−{fmt(pnl.costAll-pnl.costProd)} ₽</span></div>
+            <div className="pnl-row total"><span>Чистая валовая прибыль</span><span className="pnl-val" style={{color:pnl.cleanProfit>=0?'var(--green)':'var(--red)'}}>{fmt(pnl.cleanProfit)} ₽ ({pnl.cleanPct}%)</span></div>
+            <div style={{marginTop:6,fontSize:10,color:'var(--text2)'}}>Норма операц. рентабельности: ≥75-80% от нетто</div>
+          </div>}
+        </div>;
+      })()}
     </div>}
 
     {tab==='tracks'&&<div>
@@ -5173,6 +5164,18 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
     </div>}
 
     {tab==='competencies'&&<div>
+
+      {/* === Команда (moved from overview) === */}
+      <div className="card"><div className="card-title" style={{display:'flex',justifyContent:'space-between'}}>Команда <button className="btn btn-primary btn-sm" onClick={()=>setShowAssign(true)}>+ Назначить</button></div>
+        {(p.assignments||[]).length===0?<div className="empty">Нет назначений</div>:<table><thead><tr><th>Имя</th><th>Должность</th><th>Роль</th><th></th></tr></thead><tbody>{p.assignments.map((a,i)=><tr key={i}><td>{a.person_name}</td><td style={{color:'var(--text2)'}}>{a.person_position||'—'}</td><td>{a.role_code}</td><td><button className="btn btn-sm" style={{color:'var(--red)',background:'transparent',border:'none',cursor:'pointer',fontSize:14}} onClick={()=>store.removeAssignment(p.id,a.id)} title="Снять назначение">×</button></td></tr>)}</tbody></table>}
+      </div>
+      {openBlockers.length>0&&<div className="card"><div className="card-title">Блокеры</div>{openBlockers.map((b,i)=><div key={i} className="blocker-item" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><span style={{color:'var(--red)',fontWeight:600,fontSize:11}}>{b.severity}</span> {b.description}</div><button className="btn btn-sm btn-secondary" onClick={()=>store.resolveBlocker(p.id,b.id)}>Снять</button></div>)}</div>}
+      {showAssign&&<Modal onClose={()=>setShowAssign(false)}><h2>Назначить на проект</h2>
+        <div className="form-group"><label>Сотрудник</label><select value={af.person_id} onChange={e=>setAf(p=>({...p,person_id:e.target.value}))}><option value="">—</option>{store.data.persons.filter(pe=>!assignedIds.has(pe.id)).map(pe=><option key={pe.id} value={pe.id}>{pe.name} — {pe.position||''}</option>)}</select></div>
+        <div className="form-group"><label>Роль</label><select value={af.role_code} onChange={e=>setAf(p=>({...p,role_code:e.target.value}))}><option>PM</option><option>ANALYST</option><option>CONSULTANT</option><option>LEAD</option><option>EXPERT</option></select></div>
+        <div className="form-actions"><button className="btn btn-secondary" onClick={()=>setShowAssign(false)}>Отмена</button><button className="btn btn-primary" onClick={()=>{if(af.person_id){store.addAssignment(p.id,af.person_id,af.role_code);setShowAssign(false);}}}>Назначить</button></div>
+      </Modal>}
+
       {(()=>{
         const tracks=p.tracks||[];
         const te=p.timeEntries||[];
