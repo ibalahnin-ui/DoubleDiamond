@@ -1895,31 +1895,46 @@ function useStore(){
           /* Merge chat_messages by id — add messages we don't have locally */
           _sbSkipSave.current=true;
           setData(prev=>{
-            const localMsgIds=new Set((prev.chat_messages||[]).map(m=>m.id));
-            const newMsgs=remoteMsgs.filter(m=>!localMsgIds.has(m.id));
+            /* Build remote maps for quick lookup */
+            const remoteMsgMap=new Map();remoteMsgs.forEach(m=>remoteMsgMap.set(m.id,m));
+            const localMsgMap=new Map();(prev.chat_messages||[]).forEach(m=>localMsgMap.set(m.id,m));
+            /* New messages not in local */
+            const newMsgs=remoteMsgs.filter(m=>!localMsgMap.has(m.id));
+            /* Updated messages: check reactions, edited, pinned */
+            let msgUpdated=false;
+            const updatedLocalMsgs=(prev.chat_messages||[]).map(lm=>{
+              const rm=remoteMsgMap.get(lm.id);
+              if(!rm)return lm;
+              const rxChanged=JSON.stringify(rm.reactions||[])!==JSON.stringify(lm.reactions||[]);
+              const editChanged=(rm.edited||false)!==(lm.edited||false)||(rm.text||'')!==(lm.text||'');
+              const pinChanged=(rm.pinned||false)!==(lm.pinned||false);
+              if(rxChanged||editChanged||pinChanged){msgUpdated=true;return{...lm,reactions:rm.reactions||[],text:rm.text||lm.text,edited:rm.edited||lm.edited,pinned:rm.pinned||false};}
+              return lm;
+            });
+            /* Notifications */
             const localNotifIds=new Set((prev.notifications||[]).map(n=>n.id));
             const newNotifs=remoteNotifs.filter(n=>!localNotifIds.has(n.id));
-            /* Also sync read-status for notifications: if remote has read=true, update locally */
             const remoteReadMap={};remoteNotifs.forEach(n=>{if(n.read)remoteReadMap[n.id]=true;});
-            /* Sync chat_channels — merge by id */
+            /* Channels */
             const localChIds=new Set((prev.chat_channels||[]).map(c=>c.id));
             const remoteChArr=remoteCh||[];
             const newCh=remoteChArr.filter(c=>!localChIds.has(c.id));
-            if(newMsgs.length===0&&newNotifs.length===0&&newCh.length===0&&!Object.keys(remoteReadMap).length)return prev;
+            /* Check if anything changed */
+            const hasNotifChanges=newNotifs.length>0||Object.keys(remoteReadMap).length>0;
+            if(newMsgs.length===0&&!msgUpdated&&newCh.length===0&&!hasNotifChanges)return prev;
             const mergedNotifs=[...(prev.notifications||[]).map(n=>remoteReadMap[n.id]?{...n,read:true}:n),...newNotifs];
-            if(newMsgs.length===0&&newNotifs.length===0&&newCh.length===0&&mergedNotifs.length===(prev.notifications||[]).length){
-              const changed=(prev.notifications||[]).some(n=>!n.read&&remoteReadMap[n.id]);
-              if(!changed)return prev;
+            if(newMsgs.length===0&&!msgUpdated&&newCh.length===0){
+              const notifChanged=newNotifs.length>0||(prev.notifications||[]).some(n=>!n.read&&remoteReadMap[n.id]);
+              if(!notifChanged)return prev;
             }
             if(newMsgs.length>0)console.log('[Poll] +'+newMsgs.length+' new chat message(s)');
-            if(newNotifs.length>0)console.log('[Poll] +'+newNotifs.length+' new notification(s)');
+            if(msgUpdated)console.log('[Poll] Updated existing message(s) (reactions/edits/pins)');
             if(newCh.length>0)console.log('[Poll] +'+newCh.length+' new chat channel(s)');
-            const result={...prev,
-              chat_messages:[...(prev.chat_messages||[]),...newMsgs],
+            return {...prev,
+              chat_messages:[...updatedLocalMsgs,...newMsgs],
               notifications:mergedNotifs,
               chat_channels:[...(prev.chat_channels||[]),...newCh]
             };
-            return result;
           });
           setTimeout(()=>{_sbSkipSave.current=false;},300);
         }).catch(()=>{_pollBusy.current=false;});
@@ -2405,6 +2420,13 @@ function useStore(){
     },0);
     return msgId;
   };
+  const _cashflowLog=(text,tab,extra)=>{
+    const msgId=uuid();const ts=now();
+    setTimeout(()=>{
+      setData(d=>{const nd={...d};if(!nd.chat_messages)nd.chat_messages=[];nd.chat_messages=[...nd.chat_messages,{id:msgId,created_at:ts,channel_id:'cashflow',cashflow_tab:tab||'income',text,author:{id:'system',name:'Система',avatar:'⚙'},reactions:[],edited:false,is_system:true,allow_thread:true,...(extra||{})}];return nd;});
+    },0);
+    return msgId;
+  };
 
   const updateProject=(id,updates)=>{
     /* ATS sync: when ats_date changes, auto-calculate Mining/Assembling dates */
@@ -2511,15 +2533,19 @@ function useStore(){
   const deletePnlOverride=(ovId)=>{setData(d=>({...d,pnl_overrides:(d.pnl_overrides||[]).filter(x=>x.id!==ovId)}));showToast('Правка удалена');};
   const markPaymentAccrued=(projId,payId)=>{
     const proj=data.projects.find(p=>p.id===projId);const pm2=proj?(proj.payments||[]).find(x=>x.id===payId):null;
+    const client=proj?(data.clients||[]).find(c=>c.id===proj.client_id):null;
     setData(d=>({...d,projects:d.projects.map(p=>p.id===projId?{...p,payments:p.payments.map(pm=>pm.id===payId?{...pm,status:'ACCRUED',accrued_date:now()}:pm)}:p)}));
     showToast('Признан по актам');
     _chatLog(projId,'📋 Транш #'+(pm2?.tranche_number||'?')+' признан по актам');
+    _cashflowLog('📋 По актам: **'+((pm2?.amount||0).toLocaleString('ru'))+' ₽** по '+(proj?.code||'проекту')+' '+(client?.name||'')+' — транш #'+(pm2?.tranche_number||'?'),'income');
   };
   const markPaymentPaid=(projId,payId)=>{
     const proj=data.projects.find(p=>p.id===projId);const pm2=proj?(proj.payments||[]).find(x=>x.id===payId):null;
+    const client=proj?(data.clients||[]).find(c=>c.id===proj.client_id):null;
     setData(d=>({...d,projects:d.projects.map(p=>{if(p.id!==projId)return p;const upd={...p,payments:p.payments.map(pm=>pm.id===payId?{...pm,status:'PAID',actual_date:now()}:pm)};if(p.status==='DRAFT')upd.status='ACTIVE';return upd;})}));
     showToast('Деньги поступили');
     _chatLog(projId,'💵 Транш #'+(pm2?.tranche_number||'?')+' оплачен');
+    _cashflowLog('💵 Поступление: **'+((pm2?.amount||0).toLocaleString('ru'))+' ₽** по '+(proj?.code||'проекту')+' '+(client?.name||'')+' — транш #'+(pm2?.tranche_number||'?'),'income');
   };
   const markAllPaymentsPaid=(projId)=>{
     setData(d=>({...d,projects:d.projects.map(p=>{if(p.id!==projId)return p;let cnt=0;const upd={...p,payments:p.payments.map(pm=>{if(pm.status==='PAID')return pm;cnt++;return {...pm,status:'PAID',actual_date:pm.planned_date||now(),accrued_date:pm.accrued_date||pm.planned_date||now()};})};if(p.status==='DRAFT')upd.status='ACTIVE';return upd;})}));
@@ -2795,6 +2821,29 @@ function useStore(){
       if(item&&item.id){updateOhRegistryItem(regId,{synced_kb_id:item.id});}
       showToast('Синхронизировано с бюджетом КБ');
     }
+  };
+  /* Overhead request workflow (chat-based) */
+  const approveOhRequest=(msgId,approverName)=>{
+    setData(d=>{const nd={...d};const msg=(nd.chat_messages||[]).find(m=>m.id===msgId);if(!msg||!msg.overhead_request||msg.overhead_request.status!=='PENDING')return nd;
+    const req=msg.overhead_request;msg.overhead_request={...req,status:'APPROVED',approved_by:approverName,approved_at:now()};
+    /* Create registry entry */
+    const entry={id:uuid(),date:req.date||now().slice(0,10),amount:Number(req.amount)||0,rg:req.rg||'КБ',category:req.category||'',cls:req.cls||'',format:req.format||'счет',responsible:req.responsible||'',comment:req.comment||'',project_id:req.project_id||null,scope:req.scope||(req.project_id?'project':'company'),cf_type:req.cf_type||'OCF',verified:true,synced_oh_id:null,synced_kb_id:null,source:'chat',prior_year:req.prior_year||false,created_at:now()};
+    const _projRgs2=['РГ1','РГ2','ФК','IB'];const isProj=entry.scope==='project'&&entry.project_id&&_projRgs2.includes(entry.rg);
+    if(isProj){const ohId=uuid();entry.synced_oh_id=ohId;const projOh={id:ohId,name:entry.comment||entry.category||'',amount:entry.amount,date:entry.date,notes:'',category:entry.category||'Прочее',cls:entry.cls||'прочее',format:entry.format||'счет',responsible:entry.responsible||'',cf_type:entry.cf_type||'OCF',prior_year:entry.prior_year||false,synced_reg_id:entry.id};
+    nd.overhead_registry=[entry,...(nd.overhead_registry||[])];nd.projects=nd.projects.map(p=>p.id===entry.project_id?{...p,overheads:[projOh,...(p.overheads||[])]}:p);}
+    else{nd.overhead_registry=[entry,...(nd.overhead_registry||[])];}
+    nd.chat_messages=[...nd.chat_messages,{id:uuid(),created_at:now(),channel_id:'cashflow',cashflow_tab:'overhead_request',text:'✅ Заявка на накладную ('+((req.amount||0).toLocaleString('ru'))+' ₽, '+req.category+') подтверждена **'+approverName+'**. Добавлено в Общие накладные.',author:{id:'system',name:'Система',avatar:'⚙'},reactions:[],edited:false,is_system:true}];
+    return nd;});showToast('Заявка подтверждена');
+  };
+  const rejectOhRequest=(msgId,approverName)=>{
+    setData(d=>{const nd={...d};const msg=(nd.chat_messages||[]).find(m=>m.id===msgId);if(!msg||!msg.overhead_request||msg.overhead_request.status!=='PENDING')return nd;
+    msg.overhead_request={...msg.overhead_request,status:'REJECTED',rejected_by:approverName,rejected_at:now()};
+    nd.chat_messages=[...nd.chat_messages,{id:uuid(),created_at:now(),channel_id:'cashflow',cashflow_tab:'overhead_request',text:'❌ Заявка на накладную ('+((msg.overhead_request.amount||0).toLocaleString('ru'))+' ₽) отклонена **'+approverName+'**.',author:{id:'system',name:'Система',avatar:'⚙'},reactions:[],edited:false,is_system:true}];
+    return nd;});showToast('Заявка отклонена');
+  };
+  const updateOhRequest=(msgId,updates)=>{
+    setData(d=>{const nd={...d};const msg=(nd.chat_messages||[]).find(m=>m.id===msgId);if(!msg||!msg.overhead_request)return nd;
+    msg.overhead_request={...msg.overhead_request,...updates};return nd;});
   };
   const bulkImportOhRegistry=(entries)=>{
     const _projRgs=['РГ1','РГ2','ФК','IB'];
@@ -3679,7 +3728,7 @@ function useStore(){
     return user;
   };
 
-  return {data,stats,toast,sbStatus,sbLoaded,reconnectSb,hashPwd,addUser,updateUser,deleteUser,resetUserPassword,validateLogin,addClient,addPerson,addProject,updateProject,activateProject,addAssignment,removeAssignment,addTrack,addTask,addBlocker,resolveBlocker,addPayment,markPaymentAccrued,markPaymentPaid,markAllPaymentsPaid,addPnlOverride,deletePnlOverride,addRecommendation,addRecommendationsBatch,updateRecommendationStatus,deleteRecommendation,addOverhead,updateOverhead,removeOverhead,addKbBudgetItem,updateKbBudgetItem,deleteKbBudgetItem,addHrBudgetItem,updateHrBudgetItem,deleteHrBudgetItem,addOhRegistryItem,updateOhRegistryItem,deleteOhRegistryItem,toggleOhRegistryVerified,clearOverheadRegistry,syncOhToProject,syncOhToKbBudget,bulkImportOhRegistry,runFkDoubleCheck,addTimeEntry,updateTimeEntry,deleteTimeEntry,autoScheduleTracks,forceScheduleTracks,addGoal,addSubGoal,deleteSubGoal,addSubject,exportData,updateClient,updatePerson,deletePerson,updateTrackDates,updateTrackStatus,deleteTrack,updateTaskStatus,updateTask,deleteTask,deleteProject,updatePayment,deletePayment,advanceStage,importData,addProjectType,deleteProjectType,addDocument,deleteDocument,updateAdminScale,updatePhaseDoc,addInsight,deleteInsight,linkTrackToSubject,unlinkTrackFromSubject,deleteGoal,deleteSubject,linkTrackToInsight,unlinkTrackFromInsight,addTrackDep,removeTrackDep,upsertWeeklyHours,deleteWeeklyHours,lockProject,unlockProject,earlyCompleteProject,addCrmDeal,updateCrmDeal,deleteCrmDeal,addIcfDeal,updateIcfDeal,deleteIcfDeal,bulkImportIcfDeals,toggleNonStudent,getMetricsMap,setMetricsMap,updateMetricsNode,addMetricsNode,deleteMetricsNode,addMetricsLink,deleteMetricsLink,addStagingDeal,updateStagingDeal,deleteStagingDeal,transferStagingToCrm,addCrmStage,updateCrmStage,deleteCrmStage,reorderCrmStage,addChatChannel,updateChatChannel,deleteChatChannel,addChatMessage,updateChatMessage,deleteChatMessage,addChatReaction,pinChatMessage,setChatUser,addNotification,markNotificationRead,markAllNotificationsRead,deleteNotification,updatePhaseDates,startPhase,setPhaseStatus,holdProject,resumeProject,addMilestone,updateMilestone,deleteMilestone,completeMilestone,addITColumn,removeITColumn,updateITColumnColor,addITColumnItem,removeITColumnItem,addCardLink,removeCardLink,_ensureITCols,IT_DEFAULT_COLS,BASE_TASK_STATUSES,getGlobalStatuses,getProjectStatuses,addGlobalTaskStatus,removeGlobalTaskStatus,updateGlobalTaskStatus,renameBaseStatus,addLocalTaskStatus,removeLocalTaskStatus,moveGlobalStatusOrder,moveLocalStatusOrder};
+  return {data,stats,toast,sbStatus,sbLoaded,reconnectSb,hashPwd,addUser,updateUser,deleteUser,resetUserPassword,validateLogin,addClient,addPerson,addProject,updateProject,activateProject,addAssignment,removeAssignment,addTrack,addTask,addBlocker,resolveBlocker,addPayment,markPaymentAccrued,markPaymentPaid,markAllPaymentsPaid,addPnlOverride,deletePnlOverride,addRecommendation,addRecommendationsBatch,updateRecommendationStatus,deleteRecommendation,addOverhead,updateOverhead,removeOverhead,addKbBudgetItem,updateKbBudgetItem,deleteKbBudgetItem,addHrBudgetItem,updateHrBudgetItem,deleteHrBudgetItem,addOhRegistryItem,updateOhRegistryItem,deleteOhRegistryItem,toggleOhRegistryVerified,clearOverheadRegistry,syncOhToProject,syncOhToKbBudget,approveOhRequest,rejectOhRequest,updateOhRequest,bulkImportOhRegistry,runFkDoubleCheck,addTimeEntry,updateTimeEntry,deleteTimeEntry,autoScheduleTracks,forceScheduleTracks,addGoal,addSubGoal,deleteSubGoal,addSubject,exportData,updateClient,updatePerson,deletePerson,updateTrackDates,updateTrackStatus,deleteTrack,updateTaskStatus,updateTask,deleteTask,deleteProject,updatePayment,deletePayment,advanceStage,importData,addProjectType,deleteProjectType,addDocument,deleteDocument,updateAdminScale,updatePhaseDoc,addInsight,deleteInsight,linkTrackToSubject,unlinkTrackFromSubject,deleteGoal,deleteSubject,linkTrackToInsight,unlinkTrackFromInsight,addTrackDep,removeTrackDep,upsertWeeklyHours,deleteWeeklyHours,lockProject,unlockProject,earlyCompleteProject,addCrmDeal,updateCrmDeal,deleteCrmDeal,addIcfDeal,updateIcfDeal,deleteIcfDeal,bulkImportIcfDeals,toggleNonStudent,getMetricsMap,setMetricsMap,updateMetricsNode,addMetricsNode,deleteMetricsNode,addMetricsLink,deleteMetricsLink,addStagingDeal,updateStagingDeal,deleteStagingDeal,transferStagingToCrm,addCrmStage,updateCrmStage,deleteCrmStage,reorderCrmStage,addChatChannel,updateChatChannel,deleteChatChannel,addChatMessage,updateChatMessage,deleteChatMessage,addChatReaction,pinChatMessage,setChatUser,addNotification,markNotificationRead,markAllNotificationsRead,deleteNotification,updatePhaseDates,startPhase,setPhaseStatus,holdProject,resumeProject,addMilestone,updateMilestone,deleteMilestone,completeMilestone,addITColumn,removeITColumn,updateITColumnColor,addITColumnItem,removeITColumnItem,addCardLink,removeCardLink,_ensureITCols,IT_DEFAULT_COLS,BASE_TASK_STATUSES,getGlobalStatuses,getProjectStatuses,addGlobalTaskStatus,removeGlobalTaskStatus,updateGlobalTaskStatus,renameBaseStatus,addLocalTaskStatus,removeLocalTaskStatus,moveGlobalStatusOrder,moveLocalStatusOrder};
 }
 
 /* ===== FORMS ===== */
@@ -11492,12 +11541,124 @@ function SalesMarketingView({store,goProject}){
   </div>;
 }
 
+/* ===== Overhead Request Form (separate component to avoid hooks-in-render) ===== */
+function OhRequestFormModal({store,chatData,onClose}){
+  const CAT_OPTS2=['Подрядчики','IT решения','Промо','АХО','Логистика','Зарплата ФК','Найм','Авансированная прибыль','Прочее'];
+  const CLS_OPTS2=['поддержка сайта','софт','билеты','для офиса','оборудование','дизайн','копирайтинг','монтаж','обработка данных','программирование','аналитика','найм','медиапартнерства','опросы','сбор данных','аренда помещения','прочее'];
+  const RG_OPTS2=['РГ1','РГ2','ФК','КБ','АХО','HR','НД','PP','РГ6'];
+  const FMT_OPTS2=['счет','нал','карта ИП'];
+  const CF_OPTS2=['OCF','AHO','OFFICE','ICF'];
+  const [f,setF]=useState({date:new Date().toISOString().slice(0,10),amount:'',rg:'КБ',category:'Прочее',cls:'прочее',format:'счет',responsible:chatData.currentUser.name||'',comment:'',scope:'company',project_id:'',cf_type:'OCF',prior_year:false});
+  const upd=(k,v)=>setF(p=>({...p,[k]:v}));
+  const projList=(store.data.projects||[]).filter(p=>p.status==='ACTIVE');
+  const submit=()=>{
+    if(!f.amount||!f.category){alert('Укажите сумму и категорию');return;}
+    const users=store.data.users||[];
+    const ksenia=users.find(u=>u.name&&u.name.includes('Володина')&&u.is_active);
+    const ilya=users.find(u=>(u.login==='ibalahnin'||u.name==='Илья Балахнин')&&u.is_active);
+    const mentions=[];
+    if(ksenia)mentions.push('@'+ksenia.login);
+    if(ilya)mentions.push('@'+ilya.login);
+    const mentionText=mentions.length>0?' '+mentions.join(' '):'';
+    store.addChatMessage({channel_id:'cashflow',cashflow_tab:'overhead_request',text:'📋 **Заявка на накладную**\nСумма: '+Number(f.amount).toLocaleString('ru')+' ₽ | РГ: '+f.rg+' | '+f.category+' | '+f.cls+'\nОтветственный: '+f.responsible+'\n'+(f.comment||'')+mentionText,overhead_request:{...f,amount:Number(f.amount),status:'PENDING',created_by:chatData.currentUser.name,created_at:new Date().toISOString()}});
+    onClose();
+  };
+  const _fld={width:'100%',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'var(--text)',fontSize:12,boxSizing:'border-box'};
+  const _lbl={fontSize:10,color:'var(--text2)',display:'block',marginBottom:2};
+  return <Modal onClose={onClose}>
+    <h3 style={{marginBottom:12}}>📋 Заявка на накладную</h3>
+    <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:'60vh',overflowY:'auto'}}>
+      <div style={{display:'flex',gap:8}}>
+        <div style={{flex:1}}><label style={_lbl}>Дата</label><input type="date" value={f.date} onChange={e=>upd('date',e.target.value)} style={_fld}/></div>
+        <div style={{flex:1}}><label style={_lbl}>Сумма ₽</label><input type="number" value={f.amount} onChange={e=>upd('amount',e.target.value)} style={_fld} placeholder="0"/></div>
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        <div style={{flex:1}}><label style={_lbl}>РГ</label><select value={f.rg} onChange={e=>upd('rg',e.target.value)} style={_fld}>{RG_OPTS2.map(o=><option key={o}>{o}</option>)}</select></div>
+        <div style={{flex:1}}><label style={_lbl}>Категория</label><select value={f.category} onChange={e=>upd('category',e.target.value)} style={_fld}>{CAT_OPTS2.map(o=><option key={o}>{o}</option>)}</select></div>
+        <div style={{flex:1}}><label style={_lbl}>Класс</label><select value={f.cls} onChange={e=>upd('cls',e.target.value)} style={_fld}>{CLS_OPTS2.map(o=><option key={o}>{o}</option>)}</select></div>
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        <div style={{flex:1}}><label style={_lbl}>Формат</label><select value={f.format} onChange={e=>upd('format',e.target.value)} style={_fld}>{FMT_OPTS2.map(o=><option key={o}>{o}</option>)}</select></div>
+        <div style={{flex:1}}><label style={_lbl}>Ответственный</label><input value={f.responsible} onChange={e=>upd('responsible',e.target.value)} style={_fld}/></div>
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        <div style={{flex:1}}><label style={_lbl}>Уровень</label><select value={f.scope} onChange={e=>upd('scope',e.target.value)} style={_fld}><option value="company">Общефирм.</option><option value="project">Проект</option></select></div>
+        {f.scope==='project'?<div style={{flex:2}}><label style={_lbl}>Проект</label><select value={f.project_id} onChange={e=>upd('project_id',e.target.value)} style={_fld}><option value="">-- выберите --</option>{projList.map(p=><option key={p.id} value={p.id}>{p.code||p.name}</option>)}</select></div>
+        :<div style={{flex:2}}><label style={_lbl}>Тип CF</label><select value={f.cf_type} onChange={e=>upd('cf_type',e.target.value)} style={_fld}>{CF_OPTS2.map(o=><option key={o}>{o}</option>)}</select></div>}
+      </div>
+      <div><label style={_lbl}>Комментарий</label><textarea value={f.comment} onChange={e=>upd('comment',e.target.value)} style={{..._fld,minHeight:50,resize:'vertical'}} placeholder="Описание расхода..."/></div>
+      <label style={{fontSize:11,color:'var(--text2)',display:'flex',alignItems:'center',gap:6}}><input type="checkbox" checked={f.prior_year} onChange={e=>upd('prior_year',e.target.checked)}/> Расход прошлого года</label>
+      <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:4}}>
+        <button onClick={onClose} style={{padding:'6px 14px',background:'var(--bg4)',color:'var(--text)',border:'none',borderRadius:6,cursor:'pointer',fontSize:12}}>Отмена</button>
+        <button onClick={submit} style={{padding:'6px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontSize:12,fontWeight:600}}>Создать заявку</button>
+      </div>
+    </div>
+  </Modal>;
+}
+
+/* ===== Overhead Request Card (separate component to avoid hooks-in-render) ===== */
+function OhRequestCard({m,req,store,chatData,isThread,sysTc,setThreadMsg,formatTime}){
+  const [editing,setEditing]=useState(false);
+  const [ef,setEf]=useState({...req});
+  React.useEffect(()=>{setEf({...req});},[req.status,req.amount,req.category]);
+  const st=req.status||'PENDING';
+  const stColors={PENDING:{bg:'rgba(245,158,11,.1)',border:'var(--amber)',label:'⏳ Ожидает'},APPROVED:{bg:'rgba(16,185,129,.1)',border:'var(--green)',label:'✅ Подтверждена'},REJECTED:{bg:'rgba(239,68,68,.1)',border:'var(--red)',label:'❌ Отклонена'}};
+  const stc=stColors[st]||stColors.PENDING;
+  const curUser=chatData.currentUser;
+  const isApprover=curUser.name==='Илья Балахнин'||curUser.id==='__ADMIN__'||(curUser.name||'').includes('Володина');
+  const proj=req.project_id?(store.data.projects||[]).find(p=>p.id===req.project_id):null;
+  const CAT_O=['Подрядчики','IT решения','Промо','АХО','Логистика','Зарплата ФК','Найм','Авансированная прибыль','Прочее'];
+  const RG_O=['РГ1','РГ2','ФК','КБ','АХО','HR','НД','PP','РГ6'];
+  return <div style={{margin:'6px 8px',padding:12,borderRadius:8,background:stc.bg,borderLeft:'3px solid '+stc.border}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+      <span style={{fontSize:13,fontWeight:700}}>📋 Заявка на накладную</span>
+      <span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:stc.border,color:'#fff',fontWeight:600}}>{stc.label}</span>
+    </div>
+    {!editing?<div style={{fontSize:12,display:'grid',gridTemplateColumns:'1fr 1fr',gap:'4px 12px'}}>
+      <div><b>Сумма:</b> {(req.amount||0).toLocaleString('ru')} ₽</div>
+      <div><b>Дата:</b> {req.date}</div>
+      <div><b>РГ:</b> {req.rg}</div>
+      <div><b>Категория:</b> {req.category}</div>
+      <div><b>Класс:</b> {req.cls}</div>
+      <div><b>Формат:</b> {req.format}</div>
+      <div><b>Ответственный:</b> {req.responsible}</div>
+      <div><b>Уровень:</b> {req.scope==='project'?'Проект'+(proj?' ('+proj.code+')':''):'Общефирм.'}</div>
+      {req.cf_type&&req.scope!=='project'&&<div><b>CF тип:</b> {req.cf_type}</div>}
+      {req.comment&&<div style={{gridColumn:'1/-1'}}><b>Комментарий:</b> {req.comment}</div>}
+      <div style={{gridColumn:'1/-1',fontSize:10,color:'var(--text2)'}}>Создал: {req.created_by} • {formatTime(req.created_at||m.created_at)}</div>
+      {st==='APPROVED'&&<div style={{gridColumn:'1/-1',fontSize:10,color:'var(--green)'}}>Подтвердил: {req.approved_by} • {formatTime(req.approved_at)}</div>}
+      {st==='REJECTED'&&<div style={{gridColumn:'1/-1',fontSize:10,color:'var(--red)'}}>Отклонил: {req.rejected_by} • {formatTime(req.rejected_at)}</div>}
+    </div>
+    :<div style={{fontSize:11,display:'flex',flexDirection:'column',gap:4}}>
+      <div style={{display:'flex',gap:6}}><input type="number" value={ef.amount} onChange={e=>setEf(p=>({...p,amount:e.target.value}))} style={{flex:1,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:4,padding:'3px 6px',color:'var(--text)',fontSize:11}}/><input type="date" value={ef.date} onChange={e=>setEf(p=>({...p,date:e.target.value}))} style={{flex:1,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:4,padding:'3px 6px',color:'var(--text)',fontSize:11}}/></div>
+      <div style={{display:'flex',gap:6}}><select value={ef.rg} onChange={e=>setEf(p=>({...p,rg:e.target.value}))} style={{flex:1,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:4,padding:'3px 6px',color:'var(--text)',fontSize:11}}>{RG_O.map(o=><option key={o}>{o}</option>)}</select><select value={ef.category} onChange={e=>setEf(p=>({...p,category:e.target.value}))} style={{flex:1,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:4,padding:'3px 6px',color:'var(--text)',fontSize:11}}>{CAT_O.map(o=><option key={o}>{o}</option>)}</select></div>
+      <input value={ef.comment||''} onChange={e=>setEf(p=>({...p,comment:e.target.value}))} placeholder="Комментарий" style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:4,padding:'3px 6px',color:'var(--text)',fontSize:11}}/>
+      <div style={{display:'flex',gap:6}}><button onClick={()=>{store.updateOhRequest(m.id,{...ef,amount:Number(ef.amount)});setEditing(false);}} style={{padding:'3px 10px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:4,fontSize:10,cursor:'pointer'}}>Сохранить</button><button onClick={()=>setEditing(false)} style={{padding:'3px 10px',background:'var(--bg4)',color:'var(--text)',border:'none',borderRadius:4,fontSize:10,cursor:'pointer'}}>Отмена</button></div>
+    </div>}
+    {st==='PENDING'&&<div style={{display:'flex',gap:6,marginTop:8}}>
+      {isApprover&&<button onClick={()=>setEditing(!editing)} style={{padding:'4px 10px',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:4,fontSize:11,cursor:'pointer',color:'var(--text)'}}>✏️ Редактировать</button>}
+      {isApprover&&<button onClick={()=>store.approveOhRequest(m.id,curUser.name)} style={{padding:'4px 10px',background:'var(--green)',color:'#fff',border:'none',borderRadius:4,fontSize:11,cursor:'pointer',fontWeight:600}}>✅ Подтвердить</button>}
+      {isApprover&&<button onClick={()=>{if(confirm('Отклонить заявку?'))store.rejectOhRequest(m.id,curUser.name);}} style={{padding:'4px 10px',background:'var(--red)',color:'#fff',border:'none',borderRadius:4,fontSize:11,cursor:'pointer'}}>❌ Отклонить</button>}
+      {!isApprover&&m.author?.id===curUser.id&&<button onClick={()=>setEditing(!editing)} style={{padding:'4px 10px',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:4,fontSize:11,cursor:'pointer',color:'var(--text)'}}>📝 Редактировать</button>}
+    </div>}
+    {!isThread&&sysTc>0&&<div onClick={()=>setThreadMsg(m)} style={{display:'flex',alignItems:'center',gap:4,marginTop:6,cursor:'pointer',color:'var(--accent2)',fontSize:11,fontWeight:500}}><span>💬</span>{sysTc} {sysTc===1?'комментарий':sysTc<5?'комментария':'комментариев'}</div>}
+    {!isThread&&sysTc===0&&<div onClick={()=>setThreadMsg(m)} style={{marginTop:4,cursor:'pointer',color:'var(--text2)',fontSize:10,opacity:.7}}>💬 Обсудить</div>}
+  </div>;
+}
+
 /* ===== CHAT VIEW ===== */
 function ChatView({store}){
-  const chatData=(()=>{const d=store.data;const defaultCh=[{id:'general',name:'Общий',description:'Основной канал',type:'public',created_at:'',pinned:true},{id:'projects',name:'Проекты',description:'Обсуждение проектов',type:'public',created_at:'',pinned:true},{id:'random',name:'Разное',description:'Неформальное',type:'public',created_at:'',pinned:false}];const sess=(()=>{try{return JSON.parse(sessionStorage.getItem('pp_auth_session'));}catch(e){return null;}})();const curUser=sess?{id:sess.user_id,name:sess.name||sess.login,avatar:(sess.name||sess.login||'?')[0].toUpperCase()}:(d.chat_current_user||{id:'me',name:'Илья',avatar:'И'});return{channels:d.chat_channels||defaultCh,messages:d.chat_messages||[],currentUser:curUser};})();
+  const chatData=(()=>{const d=store.data;const defaultCh=[{id:'general',name:'Общий',description:'Основной канал',type:'public',created_at:'',pinned:true},{id:'projects',name:'Проекты',description:'Обсуждение проектов',type:'public',created_at:'',pinned:true},{id:'random',name:'Разное',description:'Неформальное',type:'public',created_at:'',pinned:false},{id:'cashflow',name:'Денежный поток',description:'Поступления и запросы накладных',type:'system',icon:'💰',created_at:'',pinned:true}];const sess=(()=>{try{return JSON.parse(sessionStorage.getItem('pp_auth_session'));}catch(e){return null;}})();const curUser=sess?{id:sess.user_id,name:sess.name||sess.login,avatar:(sess.name||sess.login||'?')[0].toUpperCase()}:(d.chat_current_user||{id:'me',name:'Илья',avatar:'И'});const chs=d.chat_channels||defaultCh;const hasCF=chs.some(c=>c.id==='cashflow');const finalChs=hasCF?chs:[...chs,{id:'cashflow',name:'Денежный поток',description:'Поступления и запросы накладных',type:'system',icon:'💰',created_at:'',pinned:true}];return{channels:finalChs,messages:d.chat_messages||[],currentUser:curUser};})();
 
   const [activeCh,setActiveCh]=useState(()=>localStorage.getItem('pp_chatCh')||'general');
-  const selectCh=(id)=>{localStorage.setItem('pp_chatCh',id);setActiveCh(id);setThreadMsg(null);};
+  /* Unread tracking: per-user lastRead timestamps */
+  const _lrKey='pp_chat_last_read_'+(chatData.currentUser.id||'me');
+  const [lastRead,setLastRead]=useState(()=>{try{return JSON.parse(localStorage.getItem(_lrKey))||{};}catch(e){return{};}});
+  const _saveLastRead=(lr)=>{setLastRead(lr);localStorage.setItem(_lrKey,JSON.stringify(lr));};
+  const getUnreadCount=(chId)=>{const ts=lastRead[chId]||'';return chatData.messages.filter(m=>m.channel_id===chId&&!m.thread_id&&(m.created_at||'')>ts&&m.author?.id!==chatData.currentUser.id).length;};
+  const markChannelRead=(chId)=>{const lr={...lastRead,[chId]:new Date().toISOString()};_saveLastRead(lr);};
+  const markAllRead=()=>{const lr={...lastRead};const ts=new Date().toISOString();const chIds=new Set(chatData.messages.map(m=>m.channel_id).filter(Boolean));chIds.forEach(id=>{lr[id]=ts;});chatData.channels.forEach(c=>{lr[c.id]=ts;});_saveLastRead(lr);};
+  const selectCh=(id)=>{localStorage.setItem('pp_chatCh',id);setActiveCh(id);setThreadMsg(null);const lr={...lastRead,[id]:new Date().toISOString()};_saveLastRead(lr);};
   const [showNewCh,setShowNewCh]=useState(false);
   const [newChName,setNewChName]=useState('');
   const [newChDesc,setNewChDesc]=useState('');
@@ -11512,6 +11673,8 @@ function ChatView({store}){
   const [showMembers,setShowMembers]=useState(false);
   const [showPinned,setShowPinned]=useState(false);
   const [chatSidebar,setChatSidebar]=useState('channels');
+  const [cashflowTab,setCashflowTab]=useState('income');
+  const [showOhRequestForm,setShowOhRequestForm]=useState(false);
   const msgEndRef=React.useRef(null);
   const threadEndRef=React.useRef(null);
 
@@ -11582,7 +11745,7 @@ function ChatView({store}){
   const allChannels=[...chatData.channels,...projectChannels];
 
   const channel=allChannels.find(c=>c.id===activeCh)||chatData.channels.find(c=>c.id===activeCh);
-  const chMessages=chatData.messages.filter(m=>m.channel_id===activeCh&&!m.thread_id).sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||''));
+  const chMessages=chatData.messages.filter(m=>{if(m.thread_id)return false;if(m.channel_id!==activeCh)return false;if(activeCh==='cashflow'){return(m.cashflow_tab||'income')===cashflowTab;}return true;}).sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||''));
   const threadMessages=threadMsg?chatData.messages.filter(m=>m.thread_id===threadMsg.id).sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||'')):[];
   const getThreadCount=(msgId)=>chatData.messages.filter(m=>m.thread_id===msgId).length;
   const pinnedMessages=chatData.messages.filter(m=>m.channel_id===activeCh&&m.pinned);
@@ -11594,7 +11757,8 @@ function ChatView({store}){
 
   const sendMessage=()=>{
     if(!msgText.trim())return;
-    store.addChatMessage({channel_id:activeCh,text:msgText.trim()});
+    const extra=activeCh==='cashflow'?{cashflow_tab:cashflowTab}:{};
+    store.addChatMessage({channel_id:activeCh,text:msgText.trim(),...extra});
     setMsgText('');
   };
   const sendThreadReply=()=>{
@@ -11711,6 +11875,10 @@ function ChatView({store}){
         }
         /* Subsequent task messages → render as regular system log (fall through below) */
       }
+      /* Overhead request card — rendered as separate component (hooks-safe) */
+      if(m.overhead_request){
+        return <OhRequestCard key={m.id} m={m} req={m.overhead_request} store={store} chatData={chatData} isThread={isThread} sysTc={sysTc} setThreadMsg={setThreadMsg} formatTime={formatTime}/>;
+      }
       /* Default system message rendering */
       return <div key={m.id} style={{padding:'6px 16px',display:'flex',alignItems:'flex-start',gap:8,background:'rgba(99,102,241,.03)',borderLeft:'3px solid var(--bg4)',margin:'2px 8px',borderRadius:'0 6px 6px 0'}}>
       <span style={{fontSize:14,marginTop:1}}>⚙</span>
@@ -11746,8 +11914,9 @@ function ChatView({store}){
             return <button key={emoji} onClick={()=>store.addChatReaction(m.id,emoji)} style={{display:'flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:10,border:'1px solid '+(myReaction?'var(--accent)':'var(--border)'),background:myReaction?'rgba(99,102,241,.15)':'var(--bg3)',cursor:'pointer',fontSize:12}} title={users.join(', ')}>{emoji}<span style={{fontSize:10,color:'var(--text2)'}}>{users.length}</span></button>;
           })}
         </div>}
-        {/* Thread indicator */}
+        {/* Thread indicator / thread link */}
         {!isThread&&tc>0&&<div onClick={()=>setThreadMsg(m)} style={{display:'flex',alignItems:'center',gap:4,marginTop:6,cursor:'pointer',color:'var(--accent2)',fontSize:11,fontWeight:500}}><span>💬</span>{tc} {tc===1?'ответ':tc<5?'ответа':'ответов'}</div>}
+        {!isThread&&tc===0&&<div onClick={()=>setThreadMsg(m)} style={{display:'inline-flex',alignItems:'center',gap:3,marginTop:4,cursor:'pointer',color:'var(--text2)',fontSize:10,opacity:.7,transition:'opacity .15s'}} onMouseEnter={e=>e.currentTarget.style.opacity='1'} onMouseLeave={e=>e.currentTarget.style.opacity='.7'}>💬 В тред</div>}
         {/* Actions toolbar */}
         <div className="msg-actions" style={{display:'none',position:'absolute',top:-4,right:8,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:6,padding:'2px 4px',gap:2,zIndex:10}}>
           {EMOJIS.slice(0,6).map(e=><button key={e} onClick={()=>store.addChatReaction(m.id,e)} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,padding:'2px 3px',borderRadius:4}} title={e}>{e}</button>)}
@@ -11765,9 +11934,10 @@ function ChatView({store}){
     </div>;
   };
 
-  const publicChannels=chatData.channels.filter(c=>c.type==='public');
+  const publicChannels=chatData.channels.filter(c=>c.type==='public'||c.type==='system');
   const privateChannels=chatData.channels.filter(c=>c.type==='private');
   const dmChannels=chatData.channels.filter(c=>c.type==='dm');
+  const UnreadBadge=({chId})=>{const n=getUnreadCount(chId);if(!n)return null;return <span style={{marginLeft:'auto',background:'var(--red)',color:'#fff',borderRadius:10,fontSize:9,fontWeight:700,minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 5px',flexShrink:0}}>{n>99?'99+':n}</span>;};
 
   const sideWidth=240;
   const threadWidth=360;
@@ -11778,7 +11948,10 @@ function ChatView({store}){
       <div style={{padding:'12px 14px 8px',borderBottom:'1px solid var(--border)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
           <h2 style={{fontSize:15,fontWeight:700,margin:0}}>Чат</h2>
-          <button onClick={()=>setShowNewCh(true)} style={{background:'var(--accent)',color:'#fff',border:'none',borderRadius:6,width:24,height:24,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}} title="Новый канал">+</button>
+          <div style={{display:'flex',gap:4,alignItems:'center'}}>
+            <button onClick={markAllRead} style={{background:'none',border:'none',color:'var(--text2)',cursor:'pointer',fontSize:13,padding:2,display:'flex',alignItems:'center'}} title="Отметить все как прочитанные">✓✓</button>
+            <button onClick={()=>setShowNewCh(true)} style={{background:'var(--accent)',color:'#fff',border:'none',borderRadius:6,width:24,height:24,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}} title="Новый канал">+</button>
+          </div>
         </div>
         <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Поиск..." style={{width:'100%',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'var(--text)',fontSize:12}} />
       </div>
@@ -11793,12 +11966,14 @@ function ChatView({store}){
         {chatSidebar==='channels'&&<div>
           {publicChannels.length>0&&<div style={{padding:'6px 14px 2px',fontSize:10,color:'var(--text2)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Каналы</div>}
           {publicChannels.map(c=><div key={c.id} onClick={()=>selectCh(c.id)} style={{padding:'6px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:8,fontSize:13,color:activeCh===c.id?'var(--accent2)':'var(--text)',background:activeCh===c.id?'var(--bg3)':'transparent',borderLeft:activeCh===c.id?'3px solid var(--accent)':'3px solid transparent',fontWeight:activeCh===c.id?600:400}}>
-            <span style={{fontSize:14}}>#</span><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.name}</span>
-            {c.pinned&&<span style={{fontSize:8,marginLeft:'auto'}}>📌</span>}
+            <span style={{fontSize:14}}>{c.icon||'#'}</span><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{c.name}</span>
+            <UnreadBadge chId={c.id}/>
+            {c.pinned&&!getUnreadCount(c.id)&&<span style={{fontSize:8}}>📌</span>}
           </div>)}
           {privateChannels.length>0&&<div style={{padding:'10px 14px 2px',fontSize:10,color:'var(--text2)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Приватные</div>}
           {privateChannels.map(c=><div key={c.id} onClick={()=>selectCh(c.id)} style={{padding:'6px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:8,fontSize:13,color:activeCh===c.id?'var(--accent2)':'var(--text)',background:activeCh===c.id?'var(--bg3)':'transparent',borderLeft:activeCh===c.id?'3px solid var(--accent)':'3px solid transparent',fontWeight:activeCh===c.id?600:400}}>
-            <span style={{fontSize:14}}>🔒</span><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.name}</span>
+            <span style={{fontSize:14}}>🔒</span><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{c.name}</span>
+            <UnreadBadge chId={c.id}/>
           </div>)}
         </div>}
 
@@ -11811,7 +11986,7 @@ function ChatView({store}){
               <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12}}>{c.proj_code||c.name}</div>
               <div style={{fontSize:9,color:'var(--text2)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.client_name}{c.proj_wg?' · '+c.proj_wg:''}</div>
             </div>
-            {msgCount>0&&<span style={{fontSize:9,background:'var(--bg4)',borderRadius:8,padding:'1px 5px',color:'var(--text2)'}}>{msgCount}</span>}
+            {(()=>{const ur=getUnreadCount(c.id);return ur>0?<UnreadBadge chId={c.id}/>:msgCount>0?<span style={{fontSize:9,background:'var(--bg4)',borderRadius:8,padding:'1px 5px',color:'var(--text2)'}}>{msgCount}</span>:null;})()}
           </div>;})}
         </div>}
 
@@ -11819,7 +11994,8 @@ function ChatView({store}){
           <div style={{padding:'6px 14px 2px',fontSize:10,color:'var(--text2)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Личные сообщения</div>
           {dmChannels.length===0&&<div style={{padding:'8px 14px',fontSize:11,color:'var(--text2)'}}>Нет личных чатов</div>}
           {dmChannels.map(c=><div key={c.id} onClick={()=>selectCh(c.id)} style={{padding:'6px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:8,fontSize:13,color:activeCh===c.id?'var(--accent2)':'var(--text)',background:activeCh===c.id?'var(--bg3)':'transparent',borderLeft:activeCh===c.id?'3px solid var(--accent)':'3px solid transparent'}}>
-            <div style={{width:24,height:24,borderRadius:'50%',background:'var(--bg4)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'var(--text)'}}>{(c.name||'?')[0]}</div><span>{c.name}</span>
+            <div style={{width:24,height:24,borderRadius:'50%',background:'var(--bg4)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'var(--text)'}}>{(c.name||'?')[0]}</div><span style={{flex:1}}>{c.name}</span>
+            <UnreadBadge chId={c.id}/>
           </div>)}
           <div style={{padding:'8px 14px'}}>
             <button onClick={()=>{
@@ -11865,7 +12041,7 @@ function ChatView({store}){
     <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,background:'var(--bg)'}}>
       {/* Channel header */}
       {channel&&<div style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
-        <span style={{fontSize:16}}>{channel.type==='dm'?'':channel.type==='project'?'📁':'#'}</span>
+        <span style={{fontSize:16}}>{channel.icon||({dm:'',project:'📁',system:'💰'}[channel.type]||'#')}</span>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontWeight:600,fontSize:14}}>{channel.type==='project'?(channel.proj_code||channel.proj_name):channel.name}</div>
           {channel.type==='project'?<div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginTop:2}}>
@@ -11879,8 +12055,9 @@ function ChatView({store}){
             {channel.client_email&&<span style={{fontSize:10,color:'var(--text2)'}}>{channel.client_email}</span>}
           </div>:channel.description&&<div style={{fontSize:11,color:'var(--text2)'}}>{channel.description}</div>}
         </div>
+        {getUnreadCount(activeCh)>0&&<button onClick={()=>markChannelRead(activeCh)} style={{background:'none',border:'1px solid var(--border)',borderRadius:6,cursor:'pointer',fontSize:11,color:'var(--accent2)',padding:'3px 8px'}} title="Отметить прочитанными">✓ Прочитано</button>}
         <button onClick={()=>setShowPinned(!showPinned)} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:showPinned?'var(--amber)':'var(--text2)'}} title="Закреплённые">📌 {pinnedMessages.length>0?pinnedMessages.length:''}</button>
-        {channel.type!=='dm'&&channel.type!=='project'&&channel.id!=='general'&&<button onClick={()=>{if(confirm('Удалить канал "'+channel.name+'"?')){store.deleteChatChannel(channel.id);selectCh('general');}}} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:'var(--red)'}} title="Удалить канал">🗑️</button>}
+        {channel.type!=='dm'&&channel.type!=='project'&&channel.id!=='general'&&channel.type!=='system'&&<button onClick={()=>{if(confirm('Удалить канал "'+channel.name+'"?')){store.deleteChatChannel(channel.id);selectCh('general');}}} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:'var(--red)'}} title="Удалить канал">🗑️</button>}
       </div>}
 
       {/* Pinned messages panel */}
@@ -11892,8 +12069,19 @@ function ChatView({store}){
         </div>)}
       </div>}
 
+      {/* Cashflow tabs */}
+      {activeCh==='cashflow'&&<div style={{display:'flex',gap:0,borderBottom:'1px solid var(--border)',flexShrink:0}}>
+        {[{k:'income',l:'💵 Поток поступлений'},{k:'overhead_request',l:'📋 Запрос накладных'}].map(t=>
+          <div key={t.k} onClick={()=>setCashflowTab(t.k)} style={{flex:1,textAlign:'center',padding:'8px 0',fontSize:12,fontWeight:cashflowTab===t.k?600:400,color:cashflowTab===t.k?'var(--accent2)':'var(--text2)',cursor:'pointer',borderBottom:cashflowTab===t.k?'2px solid var(--accent)':'2px solid transparent',background:cashflowTab===t.k?'rgba(99,102,241,.04)':'transparent'}}>{t.l}</div>)}
+      </div>}
+
       {/* Messages area */}
       <div style={{flex:1,overflowY:'auto',padding:'8px 0'}}>
+        {/* Overhead request button */}
+        {activeCh==='cashflow'&&cashflowTab==='overhead_request'&&<div style={{padding:'8px 16px'}}>
+          <button onClick={()=>setShowOhRequestForm(true)} style={{padding:'6px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:6,fontSize:12,cursor:'pointer',fontWeight:600}}>+ Заявка на накладную</button>
+        </div>}
+
         {/* For project channels: show task cards for tasks without chat messages */}
         {channel&&channel.type==='project'&&(()=>{
           const projId=channel.project_id;
@@ -12005,6 +12193,9 @@ function ChatView({store}){
         </div>
       </div>
     </Modal>}
+
+    {/* Overhead Request Form Modal — separate component */}
+    {showOhRequestForm&&<OhRequestFormModal store={store} chatData={chatData} onClose={()=>setShowOhRequestForm(false)}/>}
   </div>;
 }
 
