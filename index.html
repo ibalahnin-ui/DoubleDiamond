@@ -12491,7 +12491,7 @@ function App(){
   if(!store.sbLoaded) return <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',color:'var(--text)',flexDirection:'column',gap:12}}>
     <div style={{width:40,height:40,border:'3px solid var(--border)',borderTopColor:'var(--accent)',borderRadius:'50%',animation:'spin .8s linear infinite'}}/>
     <div style={{fontSize:14}}>Загрузка из Supabase...</div>
-    <style>{'@keyframes spin{to{transform:rotate(360deg)}}@keyframes aiBubblePulse{0%,100%{box-shadow:0 4px 24px rgba(99,102,241,.5),0 0 40px rgba(99,102,241,.2)}50%{box-shadow:0 4px 32px rgba(99,102,241,.7),0 0 60px rgba(99,102,241,.35)}}@keyframes aiDot{0%,80%,100%{transform:scale(0);opacity:.5}40%{transform:scale(1);opacity:1}}'}</style>
+    <style>{'@keyframes spin{to{transform:rotate(360deg)}}@keyframes aiMenuFadeIn{0%{opacity:0;transform:scale(.95) translateY(4px);}100%{opacity:1;transform:scale(1) translateY(0);}} @keyframes aiBubblePulse{0%,100%{box-shadow:0 4px 24px rgba(99,102,241,.5),0 0 40px rgba(99,102,241,.2)}50%{box-shadow:0 4px 32px rgba(99,102,241,.7),0 0 60px rgba(99,102,241,.35)}}@keyframes aiDot{0%,80%,100%{transform:scale(0);opacity:.5}40%{transform:scale(1);opacity:1}}'}</style>
   </div>;
 
   /* Auth gate — after all hooks, before main render */
@@ -12514,7 +12514,7 @@ function App(){
             {unreadCount>0&&<span style={{marginLeft:'auto',background:'var(--accent)',color:'#fff',borderRadius:10,padding:'1px 6px',fontSize:10,fontWeight:700,minWidth:16,textAlign:'center'}}>{unreadCount}</span>}
           </div>;
         })()}
-        <div onClick={handleLogout} style={{padding:'6px 10px',borderRadius:6,background:'rgba(239,68,68,0.15)',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:11,color:'#ef4444',border:'1px solid rgba(239,68,68,0.2)'}} onMouseOver={e=>e.currentTarget.style.background='rgba(239,68,68,0.25)'} onMouseOut={e=>e.currentTarget.style.background='rgba(239,68,68,0.15)'}>
+        <div onClick={handleLogout} style={{padding:'6px 10px',borderRadius:6,background:'rgba(239,68,68,0.15)',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:11,color:'#ef4444',border:'1px solid rgba(239,68,68,0.2)'}} onMouseOver={e=>e.currentTarget.style.background='rgba(239,68,68,0.25)'} onMouseOut={e=>{e.currentTarget.style.background='rgba(239,68,68,0.15)';}}>
           <span>🚪</span><span>Выход</span>
         </div>
       </div>}
@@ -12572,18 +12572,81 @@ function App(){
     })()}
     {store.toast&&<div className="toast">{store.toast}</div>}
     {showSbConfig&&<SupabaseConfigModal onConnect={()=>{store.reconnectSb();setShowSbConfig(false);}} onSkip={()=>setShowSbConfig(false)}/>}
-    <AiAssistant store={store} page={page}/>
+    <AiAssistant store={store} page={page} selProjId={selProjId}/>
   </div>;
 }
 
-/* ===== AI ASSISTANT COMPONENT ===== */
-function AiAssistant({store,page}){
+/* ===== AI CONTEXT MENU COMPONENT ===== */
+function AiContextMenu({store,page,selProjId,onAction}){
+  const [pos,setPos]=useState(null);
+  const [sel,setSel]=useState('');
+  const menuRef=useRef(null);
+
+  useEffect(()=>{
+    const handler=(e)=>{
+      const s=window.getSelection().toString().trim();
+      if(s.length>3&&s.length<2000){
+        e.preventDefault();
+        setSel(s);
+        setPos({x:Math.min(e.clientX,window.innerWidth-220),y:Math.min(e.clientY,window.innerHeight-200)});
+      }
+    };
+    const dismiss=(e)=>{if(menuRef.current&&!menuRef.current.contains(e.target))setPos(null);};
+    document.addEventListener('contextmenu',handler);
+    document.addEventListener('click',dismiss);
+    return()=>{document.removeEventListener('contextmenu',handler);document.removeEventListener('click',dismiss);};
+  },[]);
+
+  if(!pos)return null;
+  const actions=[
+    {icon:'💡',label:'Объясни это',prompt:'Объясни простым языком следующий текст из системы Double Diamond: "'+sel+'"'},
+    {icon:'📖',label:'Найди инструкцию',prompt:'Найди в базе знаний инструкцию, связанную с: "'+sel+'"'},
+    {icon:'🔧',label:'Предложи улучшение',prompt:'Предложи улучшение для: "'+sel+'"'},
+    {icon:'📊',label:'Проанализируй',prompt:'Проанализируй следующие данные: "'+sel+'"'}
+  ];
+  return <div ref={menuRef} style={{position:'fixed',left:pos.x,top:pos.y,zIndex:20000,background:'linear-gradient(135deg,#1a1a2e,#16213e)',border:'1px solid rgba(99,102,241,.4)',borderRadius:12,boxShadow:'0 12px 40px rgba(0,0,0,.6)',padding:6,minWidth:200,animation:'aiMenuFadeIn .15s ease-out'}}>
+    <div style={{padding:'6px 10px',fontSize:10,color:'#6366f1',borderBottom:'1px solid rgba(99,102,241,.15)',marginBottom:4}}>🤖 AI-действия</div>
+    {actions.map(a=><div key={a.label} onClick={()=>{onAction(a.prompt);setPos(null);}} style={{padding:'8px 12px',fontSize:12,color:'#c8c8e0',cursor:'pointer',borderRadius:8,display:'flex',alignItems:'center',gap:8,transition:'background .15s'}} onMouseOver={e=>{e.currentTarget.style.background='rgba(99,102,241,.15)';}} onMouseOut={e=>{e.currentTarget.style.background='transparent';}}>
+      <span>{a.icon}</span>{a.label}
+    </div>)}
+    <div style={{padding:'6px 10px',fontSize:9,color:'#4444aa',borderTop:'1px solid rgba(99,102,241,.1)',marginTop:4}}>«{sel.slice(0,40)}{sel.length>40?'...':''}»</div>
+  </div>;
+}
+
+/* Smart actions per page */
+function _getSmartActions(page,selProjId,store){
+  const base=['Статус портфеля','Что такое BPM-4?'];
+  if(page==='dashboard')return ['Общий P&L портфеля','Какие проекты в зоне риска?','Загрузка команды','Рекомендации по портфелю'];
+  if(page==='project-detail'&&selProjId){
+    const proj=(store.data.projects||[]).find(p=>p.id===selProjId);
+    const name=proj?proj.code:'проект';
+    return ['Анализ P&L '+name,'Что не заполнено?','Риски проекта','Рекомендации по треку','Проверь компетенции команды'];
+  }
+  if(page==='people')return ['Загрузка команды','Кто не привязан к проектам?','Распределение по грейдам','Открытые часы'];
+  if(page==='finance_machine')return ['Общий P&L по РГ','Какие проекты убыточны?','Квартальная динамика','Сравни РГ1 vs РГ2'];
+  if(page==='sales_marketing')return ['План vs Факт по группам','ДЗ — кто должен?','Прогноз кэшфлоу','Конверсия пайплайна'];
+  if(page==='triage')return ['Топ приоритеты','Объясни триаж-матрицу','Какие проекты в красной зоне?'];
+  if(page==='clients')return ['Топ клиенты по выручке','Клиенты без проектов','Распределение по странам'];
+  if(page==='knowledge')return ['Поиск инструкций','Самые популярные артефакты','Рекомендации по базе знаний'];
+  return base;
+}
+
+/* ===== AI ASSISTANT COMPONENT V2 — RAG + Deep Context + Smart Actions ===== */
+function AiAssistant({store,page,selProjId}){
   const [open,setOpen]=useState(false);
   const [msgs,setMsgs]=useState([{role:'assistant',content:'Привет! Я AI-ассистент Double Diamond. Могу помочь с анализом портфеля, методологией BPM/BPI, финансами проектов. Задавайте вопросы!'}]);
   const [input,setInput]=useState('');
   const [loading,setLoading]=useState(false);
   const _AI_DEFAULT_KEY='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';
-  const [apiKey,setApiKey]=useState(()=>{const stored=localStorage.getItem('pp_ai_api_key');if(stored&&stored.startsWith('sk-ant-')&&stored===_AI_DEFAULT_KEY)return stored;if(!stored||!stored.startsWith('sk-ant-'))return _AI_DEFAULT_KEY;return stored;});
+  const [apiKey,setApiKey]=useState(()=>{
+    const stored=localStorage.getItem('pp_ai_api_key');
+    /* Always prefer default key unless user explicitly set a different valid one */
+    if(!stored)return _AI_DEFAULT_KEY;
+    if(stored===_AI_DEFAULT_KEY)return stored;
+    /* If stored key is clearly invalid (old key), replace with default */
+    if(!stored.startsWith('sk-ant-api03-'))return _AI_DEFAULT_KEY;
+    return stored;
+  });
   const [showSettings,setShowSettings]=useState(false);
   const [proxyUrl,setProxyUrl]=useState(()=>localStorage.getItem('pp_ai_proxy_url')||'');
   const scrollRef=useRef(null);
@@ -12592,37 +12655,146 @@ function AiAssistant({store,page}){
   useEffect(()=>{if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight;},[msgs]);
   useEffect(()=>{if(open&&inputRef.current)inputRef.current.focus();},[open]);
 
-  const getContext=()=>{
+  /* ---- Deep context: page-specific ---- */
+  const getDeepContext=()=>{
     const d=store.data;
     const projects=(d.projects||[]).filter(p=>p.status==='ACTIVE');
     const persons=(d.persons||[]).filter(p=>!p.fire_date);
     const clients=d.clients||[];
-    const summary={
-      activeProjects:projects.length,
-      totalPersons:persons.length,
-      totalClients:clients.length,
-      projectsList:projects.slice(0,30).map(p=>p.code+' ('+p.work_group+', '+(p.project_type||'OD')+', контракт: '+(p.total_contract_value?Math.round(p.total_contract_value/1000)+'k':'н/д')+')').join('; '),
-      workGroups:[...new Set(projects.map(p=>p.work_group).filter(Boolean))].join(', '),
-      currentPage:page
-    };
-    return JSON.stringify(summary);
+    let ctx='Страница: '+page+'\n';
+    ctx+='Активных проектов: '+projects.length+', сотрудников: '+persons.length+', клиентов: '+clients.length+'\n';
+    ctx+='Рабочие группы: '+[...new Set(projects.map(p=>p.work_group).filter(Boolean))].join(', ')+'\n';
+
+    /* Page-specific deep context */
+    if(page==='project-detail'&&selProjId){
+      const proj=d.projects.find(p=>p.id===selProjId);
+      if(proj){
+        const team=(proj.team||[]).map(t=>{const per=persons.find(pp=>pp.id===t.person_id);return per?per.name+' ('+per.grade+')':t.person_id;}).join(', ');
+        const tracks=(proj.tracks||[]).map(t=>t.track_name+' ['+t.status+']').join(', ');
+        const payments=(proj.payments||[]);
+        const paidSum=payments.filter(p=>p.status==='PAID').reduce((s,p)=>s+(p.amount||0),0);
+        const accruedSum=payments.filter(p=>p.status==='ACCRUED').reduce((s,p)=>s+(p.amount||0),0);
+        const plannedSum=payments.filter(p=>p.status==='PLANNED').reduce((s,p)=>s+(p.amount||0),0);
+        ctx+='\n--- ПРОЕКТ: '+proj.code+' ---\n';
+        ctx+='Клиент: '+(proj.client_name||'н/д')+', Тип: '+(proj.project_type||'OD')+', Группа: '+(proj.work_group||'')+'\n';
+        ctx+='Контракт: '+(proj.total_contract_value?Math.round(proj.total_contract_value).toLocaleString():'н/д')+'\n';
+        ctx+='Оплачено: '+Math.round(paidSum).toLocaleString()+', По актам: '+Math.round(accruedSum).toLocaleString()+', План: '+Math.round(plannedSum).toLocaleString()+'\n';
+        ctx+='Фаза: '+(proj.current_phase||'н/д')+', Статус: '+proj.status+'\n';
+        if(team)ctx+='Команда: '+team+'\n';
+        if(tracks)ctx+='Треки: '+tracks+'\n';
+        if(proj.hypothesis_board){
+          const goals=(proj.hypothesis_board.goals||[]);
+          const hyps=(proj.hypothesis_board.hypotheses||[]);
+          if(goals.length)ctx+='Цели: '+goals.map(g=>g.text).join('; ')+'\n';
+          if(hyps.length)ctx+='Гипотезы ('+hyps.length+'): '+hyps.slice(0,5).map(h=>h.text).join('; ')+'\n';
+        }
+      }
+    }else if(page==='dashboard'){
+      const byWG={};projects.forEach(p=>{const wg=p.work_group||'?';byWG[wg]=(byWG[wg]||0)+1;});
+      ctx+='\nПроекты по РГ: '+Object.entries(byWG).map(([k,v])=>k+':'+v).join(', ')+'\n';
+      const totalContract=projects.reduce((s,p)=>s+(p.total_contract_value||0),0);
+      ctx+='Общий контракт: '+Math.round(totalContract).toLocaleString()+'\n';
+    }else if(page==='people'){
+      const byDept={};persons.forEach(p=>{(p.departments||[p.department]).forEach(d=>{byDept[d]=(byDept[d]||0)+1;});});
+      ctx+='\nСотрудники по отделам: '+Object.entries(byDept).map(([k,v])=>k+':'+v).join(', ')+'\n';
+      const byGrade={};persons.forEach(p=>{byGrade[p.grade]=(byGrade[p.grade]||0)+1;});
+      ctx+='По грейдам: '+Object.entries(byGrade).map(([k,v])=>k+':'+v).join(', ')+'\n';
+    }else if(page==='finance_machine'||page==='sales_marketing'){
+      ctx+='\nПроекты (финансы):\n';
+      projects.slice(0,20).forEach(p=>{
+        const pays=p.payments||[];
+        const paid=pays.filter(x=>x.status==='PAID').reduce((s,x)=>s+(x.amount||0),0);
+        ctx+=p.code+': контракт='+(p.total_contract_value||0)+', оплачено='+paid+'\n';
+      });
+    }else if(page==='clients'){
+      ctx+='\nКлиенты: '+clients.map(c=>c.name+' ('+c.country+', проектов: '+projects.filter(p=>p.client_id===c.id).length+')').join('; ')+'\n';
+    }else if(page==='triage'){
+      ctx+='\nТриаж: '+projects.slice(0,15).map(p=>p.code+' приоритет='+(p._priorityGD||'н/д')).join('; ')+'\n';
+    }
+    /* Short project list */
+    ctx+='\nВсе проекты: '+projects.slice(0,30).map(p=>p.code+' ('+p.work_group+')').join(', ');
+    return ctx;
   };
 
-  const SYSTEM_PROMPT=`Ты — AI-ассистент системы управления портфелем проектов Paper Planes (Double Diamond).
+  /* ---- RAG-lite: keyword search over knowledgeItems ---- */
+  const searchKnowledge=(query)=>{
+    const items=store.data.knowledgeItems||[];
+    if(!items.length)return '';
+    const words=query.toLowerCase().split(/[\s,;.!?]+/).filter(w=>w.length>2);
+    if(!words.length)return '';
+    const scored=items.map(item=>{
+      const text=(item.title+' '+item.description+' '+(item.tags||[]).join(' ')+' '+(item.content||'')).toLowerCase();
+      const score=words.reduce((s,w)=>s+(text.includes(w)?1:0),0);
+      return {item,score};
+    }).filter(s=>s.score>0).sort((a,b)=>b.score-a.score).slice(0,3);
+    if(!scored.length)return '';
+    return '\n\nРЕЛЕВАНТНЫЕ СТАТЬИ ИЗ БАЗЫ ЗНАНИЙ:\n'+scored.map((s,i)=>(i+1)+'. '+s.item.title+(s.item.description?' — '+s.item.description.slice(0,200):'')).join('\n');
+  };
 
-МЕТОДОЛОГИЯ:
-- Double Diamond: 4 фазы — Explore (BPM: добыча данных), Define (BPA: сборка), Develop (BPI: внедрение), Deliver (BPO: организация)
-- Треки BPM: опросы, интервью сотрудников, интервью клиентов, анализ БД, тайный покупатель, desk research, market-sizing, анализ БП, компетенции, CRM, ЦМД
-- Грейды команды: C1 (джун) → C5 (партнёр)
-- Триаж: оценка проектов по срочности, масштабу, стоимости, сложности → приоритет
+  const SYSTEM_PROMPT=`Ты — AI-ассистент системы управления портфелем проектов Paper Planes (Double Diamond). Ты работаешь ВНУТРИ приложения и видишь данные текущей страницы. Если пользователь на карточке проекта — ты видишь этот проект целиком. Используй это для точных ответов.
+
+МЕТОДОЛОГИЯ DOUBLE DIAMOND:
+Paper Planes — консалтинговая компания, первый российский управленческий консалтинг по международным стандартам. 4 фазы проекта:
+1. EXPLORE (BPM — Mining/Добыча данных): сбор первичных данных
+2. DEFINE (BPA — Assembling/Сборка): анализ, синтез, построение моделей
+3. DEVELOP (BPI — Implementation/Внедрение): внедрение изменений
+4. DELIVER (BPO — Organisation/Организация): закрепление результатов
+
+ПРОЦЕССЫ BPM (EXPLORE) — ПОЛНЫЙ КАТАЛОГ:
+- BPM-1: Опросы и интерпретация — опросы клиентов, неклиентов, сотрудников. Каты: дашборды, EST, кластеризация, фокус-группы
+- BPM-2: Интервью с сотрудниками — TIER-1 (руководство) и TIER-2 (линейные), оргинтервью
+- BPM-3: Интервью с клиентами — клиентские/неклиентские, выводы по позиционированию, CJM
+- BPM-4: Анализ БД и Формула прибыли — data mining, RFM, HPV, когортный анализ, unit-economics
+- BPM-5a: Тайный покупатель B2B — mystery shopping для B2B-компаний
+- BPM-5b: Тайный покупатель B2C (offline) — mystery shopping для розницы
+- BPM-5c: Тайный покупатель Digital — аудит digital-каналов
+- BPM-6: Кабинетный анализ (Desk Research) — вторичные источники, бенчмарки
+- BPM-7A: Анализ рынка (Market Sizing) — PAM/TAM/SAM/SOM, объёмы рынка
+- BPM-7B: Анализ рынка (Porter-like) — по продуктам/отраслям/регионам, конкурентный анализ
+- BPM-8: Анализ бизнес-процессов — карты процессов, узкие места, customer-centric трансформация
+- BPM-9: Анализ компетенций сотрудников — оценка команды, gap-analysis, ритмы управления
+- BPM-10: Анализ CRM — воронка продаж, сегментация, триггерные цепочки
+- BPM-11: Анализ ЦМД (целевая модель данных) — структура данных компании
+
+ПРОЦЕССЫ BPA (DEFINE):
+- Situation Analysis, SWOT, Porter 5 Forces, PESTEL
+- Issue Tree, построение гипотез
+- CJM (Customer Journey Map), EJM (Employee Journey Map)
+- QFD (Quality Function Deployment)
+- Формула прибыли и 6 рычагов роста
+
+ПРОЦЕССЫ BPI (DEVELOP):
+- Позиционирование и ключевые сообщения
+- Контент-план, NPD (запуск новых продуктов)
+- Организационная структура и оргдизайн
+- HR: ключевые сообщения по сегментам
+
+МОДЕЛИ И ФРЕЙМВОРКИ (категории):
+- Финансы: Формула прибыли, Unit-economics, P&L, Cash Flow
+- Маркетинг: RFM, CJM, EST, NPS/eNPS, контент-стратегия
+- Процессы: BPMN, карты процессов, FTE-анализ
+- Структура: оргдизайн, административная шкала
+- HR: компетенции, грейды (C1-C5), PAEI, модель сеньорити
+- IT: ЦМД, BI-дашборды, PowerBI
+- Стратегия: Porter, PESTEL, BCG-матрица, Ansoff
+
+ГРЕЙДЫ КОМАНДЫ: C1 (джун) → C2 (миддл) → C3 (сеньор) → C4 (менеджер) → C5 (партнёр)
+ТРИАЖ: оценка проектов по срочности, масштабу, стоимости, сложности → приоритет GD
+РАБОЧИЕ ГРУППЫ: РГ1 (основная), РГ2, ФК (Фулл Кит)
+СТРАНЫ: Россия, Казахстан, Узбекистан, Кыргызстан, Таджикистан, Евросоюз, ОАЭ
 
 ФИНАНСЫ:
-- P&L: выручка (ACCRUED+PAID) → нетто → минус накладные → валовая → минус C1-C4 → грязная → минус C5 → чистая
-- Кэшфлоу: только PAID × (1 - налог)
-- ДЗ: ACCRUED но не PAID
-- Рабочие группы: РГ1 (основная), РГ2, ФК (Фулл Кит)
+- P&L: выручка (ACCRUED+PAID) → нетто (минус НДС) → минус накладные → валовая → минус C1-C4 зарплаты → грязная → минус C5 → чистая
+- Кэшфлоу: только PAID × (1 - налоговая_ставка/100)
+- ДЗ (дебиторская задолженность): ACCRUED но ещё не PAID
+- Платежи: PLANNED → ACCRUED (по актам) → PAID (деньги пришли)
 
-Ты работаешь внутри приложения. Отвечай кратко, по делу, на русском. Используй знание контекста портфеля.`;
+ADMIN ПРОЦЕДУРЫ (BPP):
+- Триаж проектов, чеклист администратора РГ, админшкала
+- SCQA (Situation-Complication-Question-Answer) для каждого проекта
+- Программы BPM — адаптивный набор операций BPM для конкретного проекта
+
+Ты работаешь внутри приложения. Отвечай кратко, по делу, на русском. При ответах на вопросы о методологии ссылайся на конкретные BPM-процессы и модели. Если пользователь спрашивает "как сделать X" — давай пошаговую инструкцию на основе знаний Paper Planes.`;
 
   const sendMessage=async()=>{
     if(!input.trim()||loading)return;
@@ -12634,12 +12806,32 @@ function AiAssistant({store,page}){
     setLoading(true);
 
     try{
-      const contextMsg={role:'user',content:'[Контекст портфеля: '+getContext()+']'};
-      const apiMsgs=[contextMsg,...newMsgs.slice(-20).map(m=>({role:m.role,content:m.content}))];
+      /* Build system prompt with deep context + RAG */
+      const ragHits=searchKnowledge(input.trim());
+      const sysWithContext=SYSTEM_PROMPT+'\n\nТЕКУЩИЙ КОНТЕКСТ ПОРТФЕЛЯ:\n'+getDeepContext()+ragHits;
 
+      /* Build messages — only user/assistant, must alternate, start with user */
+      const recentMsgs=newMsgs.slice(-20);
+      const apiMsgs=[];
+      for(const m of recentMsgs){
+        const role=m.role==='user'?'user':'assistant';
+        /* Ensure alternation: skip if same role as previous */
+        if(apiMsgs.length>0&&apiMsgs[apiMsgs.length-1].role===role)continue;
+        apiMsgs.push({role,content:m.content});
+      }
+      /* Ensure starts with user */
+      if(apiMsgs.length>0&&apiMsgs[0].role!=='user')apiMsgs.shift();
+
+      const _key=apiKey.trim();
       const endpoint=proxyUrl||'https://api.anthropic.com/v1/messages';
-      const headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'};
-      if(!proxyUrl){headers['anthropic-dangerous-direct-browser-access']='true';}
+      const headers={
+        'Content-Type':'application/json',
+        'x-api-key':_key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      };
+
+      console.log('[AI] Using key: '+_key.slice(0,20)+'...'+_key.slice(-6)+' endpoint: '+endpoint);
 
       const resp=await fetch(endpoint,{
         method:'POST',
@@ -12647,13 +12839,14 @@ function AiAssistant({store,page}){
         body:JSON.stringify({
           model:'claude-haiku-4-5-20251001',
           max_tokens:1024,
-          system:SYSTEM_PROMPT,
+          system:sysWithContext,
           messages:apiMsgs
         })
       });
 
       if(!resp.ok){
         const errText=await resp.text();
+        console.error('[AI] Error '+resp.status+':',errText.slice(0,500));
         throw new Error('API '+resp.status+': '+errText.slice(0,200));
       }
 
@@ -12682,7 +12875,11 @@ function AiAssistant({store,page}){
           <input value={proxyUrl} onChange={e=>{setProxyUrl(e.target.value);localStorage.setItem('pp_ai_proxy_url',e.target.value);}} placeholder="https://your-worker.workers.dev/v1/messages" style={{width:'100%',padding:'8px 12px',background:'rgba(255,255,255,.08)',border:'1px solid rgba(99,102,241,.3)',borderRadius:8,color:'#e0e0ff',fontSize:12,boxSizing:'border-box'}}/>
           <div style={{fontSize:9,color:'#6666aa',marginTop:4}}>Для обхода CORS. Без прокси — прямой вызов API (может не работать из браузера)</div>
         </div>
+        <div style={{fontSize:9,color:apiKey===_AI_DEFAULT_KEY?'#4ade80':'#fbbf24',marginBottom:8}}>
+          {apiKey===_AI_DEFAULT_KEY?'✅ Используется встроенный ключ':'⚠️ Используется пользовательский ключ: '+apiKey.slice(0,15)+'...'}
+        </div>
         <div style={{display:'flex',gap:8}}>
+          <button onClick={()=>{localStorage.removeItem('pp_ai_api_key');setApiKey(_AI_DEFAULT_KEY);}} style={{flex:1,padding:'8px',background:'rgba(239,68,68,.2)',border:'1px solid rgba(239,68,68,.4)',borderRadius:8,color:'#fca5a5',cursor:'pointer',fontSize:11}}>Сбросить ключ</button>
           <button onClick={()=>setShowSettings(false)} style={{flex:1,padding:'8px',background:'rgba(99,102,241,.2)',border:'1px solid rgba(99,102,241,.4)',borderRadius:8,color:'#a5b4fc',cursor:'pointer',fontSize:12,fontWeight:600}}>Готово</button>
         </div>
       </div>
@@ -12711,7 +12908,12 @@ function AiAssistant({store,page}){
       <div ref={scrollRef} style={{flex:1,overflowY:'auto',padding:'12px 14px',display:'flex',flexDirection:'column',gap:10,minHeight:200,maxHeight:'50vh'}}>
         {msgs.map((m,i)=><div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
           <div style={{maxWidth:'85%',padding:'10px 14px',borderRadius:m.role==='user'?'14px 14px 4px 14px':'14px 14px 14px 4px',background:m.role==='user'?'linear-gradient(135deg,#6366f1,#4f46e5)':'rgba(255,255,255,.06)',color:m.role==='user'?'#fff':'#c8c8e0',fontSize:12,lineHeight:1.5,whiteSpace:'pre-wrap',wordBreak:'break-word',border:m.role==='user'?'none':'1px solid rgba(255,255,255,.08)'}}>
-            {m.content}
+            {m.role==='assistant'?m.content.split('\n').map((line,li)=>{
+              if(line.startsWith('**')&&line.endsWith('**'))return <div key={li} style={{fontWeight:700,marginTop:li?4:0}}>{line.slice(2,-2)}</div>;
+              if(line.match(/^\d+\.\s/))return <div key={li} style={{paddingLeft:12,marginTop:2}}>{'\u2022 '+line.replace(/^\d+\.\s/,'')}</div>;
+              if(line.startsWith('- ')||line.startsWith('\u2022 '))return <div key={li} style={{paddingLeft:12,marginTop:2}}>{'\u2022 '+line.slice(2)}</div>;
+              return <div key={li} style={{marginTop:li&&line?2:0}}>{line||'\u00A0'}</div>;
+            }):m.content}
           </div>
         </div>)}
         {loading&&<div style={{display:'flex',justifyContent:'flex-start'}}>
@@ -12726,14 +12928,20 @@ function AiAssistant({store,page}){
       {/* Input */}
       <div style={{padding:'10px 14px',borderTop:'1px solid rgba(99,102,241,.15)',background:'rgba(0,0,0,.2)',display:'flex',gap:8}}>
         <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}} placeholder={apiKey?'Спросите что-нибудь...':'Сначала укажите API ключ в ⚙️'} disabled={loading} style={{flex:1,padding:'10px 14px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(99,102,241,.2)',borderRadius:12,color:'#e0e0ff',fontSize:12,outline:'none',transition:'border-color .2s'}}/>
-        <button onClick={sendMessage} disabled={loading||!input.trim()} style={{padding:'10px 16px',background:loading||!input.trim()?'rgba(99,102,241,.2)':'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:12,color:'#fff',cursor:loading?'wait':'pointer',fontSize:14,transition:'all .2s',opacity:loading||!input.trim()?.5:1}}>→</button>
+        <button data-ai-send onClick={sendMessage} disabled={loading||!input.trim()} style={{padding:'10px 16px',background:loading||!input.trim()?'rgba(99,102,241,.2)':'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:12,color:'#fff',cursor:loading?'wait':'pointer',fontSize:14,transition:'all .2s',opacity:loading||!input.trim()?.5:1}}>→</button>
       </div>
 
       {/* Quick suggestions */}
-      {msgs.length<=1&&!loading&&<div style={{padding:'0 14px 12px',display:'flex',flexWrap:'wrap',gap:6}}>
-        {['Статус портфеля','Топ-5 проектов по выручке','Загрузка команды','Что такое BPM-4?'].map(q=><span key={q} onClick={()=>{setInput(q);}} style={{padding:'4px 10px',background:'rgba(99,102,241,.1)',border:'1px solid rgba(99,102,241,.2)',borderRadius:20,fontSize:10,color:'#a5b4fc',cursor:'pointer',transition:'all .2s'}} onMouseOver={e=>{e.target.style.background='rgba(99,102,241,.25)';}} onMouseOut={e=>{e.target.style.background='rgba(99,102,241,.1)';}}>{q}</span>)}
+      {msgs.length<=1&&!loading&&<div style={{padding:'0 14px 12px',display:'flex',flexDirection:'column',gap:6}}>
+        <div style={{fontSize:9,color:'#6366f1',padding:'0 2px'}}>Быстрые действия ({page}):</div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+        {_getSmartActions(page,selProjId,store).map(q=><span key={q} onClick={()=>{setInput(q);setTimeout(()=>{const btn=document.querySelector('[data-ai-send]');if(btn)btn.click();},50);}} style={{padding:'4px 10px',background:'rgba(99,102,241,.1)',border:'1px solid rgba(99,102,241,.2)',borderRadius:20,fontSize:10,color:'#a5b4fc',cursor:'pointer',transition:'all .2s'}} onMouseOver={e=>{e.currentTarget.style.background='rgba(99,102,241,.25)';}} onMouseOut={e=>{e.currentTarget.style.background='rgba(99,102,241,.1)';}}>{q}</span>)}
+        </div>
       </div>}
     </div>
+
+    {/* Context menu */}
+    <AiContextMenu store={store} page={page} selProjId={selProjId} onAction={(prompt)=>{setOpen(true);setInput(prompt);setTimeout(()=>{const btn=document.querySelector('[data-ai-send]');if(btn)btn.click();},100);}}/>
 
     {/* Floating button */}
     <div onClick={()=>setOpen(v=>!v)} style={{position:'fixed',bottom:24,right:24,zIndex:10001,width:56,height:56,borderRadius:'50%',background:open?'linear-gradient(135deg,#4f46e5,#6366f1)':'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',boxShadow:open?'0 4px 16px rgba(99,102,241,.3)':'0 4px 24px rgba(99,102,241,.5),0 0 40px rgba(99,102,241,.2)',transition:'all .3s cubic-bezier(.4,0,.2,1)',transform:open?'rotate(0deg)':'rotate(0deg)',..._pulse}}>
