@@ -1817,12 +1817,19 @@ function useStore(){
       }).catch(e=>{console.warn('Supabase fetch failed:',e);setSbStatus('error');setSbLoaded(true);});
   },[]);
 
-  /* Save: localStorage always + Supabase only for online (master) */
+  /* Save: localStorage + Supabase — ONLY after Supabase has loaded (prevents SEED overwrite) */
   useEffect(()=>{
+    /* CRITICAL: In online mode, NEVER save until Supabase has loaded.
+       This prevents SEED data (empty kb_budget, etc.) from overwriting
+       real data in localStorage or Supabase during the async load gap. */
+    if(_syncMode!=='local'&&!sbLoaded){
+      console.log('[Save] Blocked — waiting for Supabase to load first');
+      return;
+    }
     try{localStorage.setItem(LS_KEY,JSON.stringify(data));}catch(e){console.warn('LS save error',e);}
     /* Localhost: никогда не трогает Supabase */
     if(_syncMode==='local')return;
-    if(!_sb||!sbLoaded||_sbSkipSave.current)return;
+    if(!_sb||_sbSkipSave.current)return;
     /* PROTECTION: don't push empty/SEED data to Supabase */
     const _saveScore=_dataScore(data);
     if(_saveScore<50){console.warn('[Save] Skipping Supabase save — data looks like SEED (score='+_saveScore+')');return;}
