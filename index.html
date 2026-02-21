@@ -12637,7 +12637,7 @@ function AiAssistant({store,page,selProjId}){
   const [msgs,setMsgs]=useState([{role:'assistant',content:'Привет! Я AI-ассистент Double Diamond. Могу помочь с анализом портфеля, методологией BPM/BPI, финансами проектов. Задавайте вопросы!'}]);
   const [input,setInput]=useState('');
   const [loading,setLoading]=useState(false);
-  const _AI_DEFAULT_KEY='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';
+  const _AI_DEFAULT_KEY='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';
   const [apiKey,setApiKey]=useState(()=>{
     const stored=localStorage.getItem('pp_ai_api_key');
     /* Always prefer default key unless user explicitly set a different valid one */
