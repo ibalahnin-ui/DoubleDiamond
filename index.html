@@ -12581,32 +12581,51 @@ function AiContextMenu({store,page,selProjId,onAction}){
   const [pos,setPos]=useState(null);
   const [sel,setSel]=useState('');
   const menuRef=useRef(null);
+  const [expanded,setExpanded]=useState(false);
 
   useEffect(()=>{
-    const handler=(e)=>{
-      const s=window.getSelection().toString().trim();
-      if(s.length>3&&s.length<2000){
-        e.preventDefault();
-        setSel(s);
-        setPos({x:Math.min(e.clientX,window.innerWidth-220),y:Math.min(e.clientY,window.innerHeight-200)});
+    let checkTimer=null;
+    const checkSelection=()=>{
+      const s=window.getSelection();
+      const text=(s?s.toString():'').trim();
+      if(text.length>3&&text.length<2000){
+        const range=s.getRangeAt(0);
+        const rect=range.getBoundingClientRect();
+        if(rect.width>0){
+          setSel(text);
+          setPos({x:Math.min(rect.left+rect.width/2-100,window.innerWidth-220),y:Math.max(rect.top-48,8)});
+          setExpanded(false);
+        }
+      } else {
+        if(menuRef.current){
+          const active=document.activeElement;
+          if(!menuRef.current.contains(active)){setPos(null);setExpanded(false);}
+        } else {setPos(null);setExpanded(false);}
       }
     };
-    const dismiss=(e)=>{if(menuRef.current&&!menuRef.current.contains(e.target))setPos(null);};
-    document.addEventListener('contextmenu',handler);
-    document.addEventListener('click',dismiss);
-    return()=>{document.removeEventListener('contextmenu',handler);document.removeEventListener('click',dismiss);};
+    const onMouseUp=()=>{clearTimeout(checkTimer);checkTimer=setTimeout(checkSelection,200);};
+    const onKeyUp=(e)=>{if(e.shiftKey){clearTimeout(checkTimer);checkTimer=setTimeout(checkSelection,200);}};
+    document.addEventListener('mouseup',onMouseUp);
+    document.addEventListener('keyup',onKeyUp);
+    return()=>{document.removeEventListener('mouseup',onMouseUp);document.removeEventListener('keyup',onKeyUp);clearTimeout(checkTimer);};
   },[]);
 
   if(!pos)return null;
   const actions=[
-    {icon:'💡',label:'Объясни это',prompt:'Объясни простым языком следующий текст из системы Double Diamond: "'+sel+'"'},
-    {icon:'📖',label:'Найди инструкцию',prompt:'Найди в базе знаний инструкцию, связанную с: "'+sel+'"'},
-    {icon:'🔧',label:'Предложи улучшение',prompt:'Предложи улучшение для: "'+sel+'"'},
-    {icon:'📊',label:'Проанализируй',prompt:'Проанализируй следующие данные: "'+sel+'"'}
+    {icon:'💡',label:'Объясни',prompt:'Объясни простым языком следующий текст из системы Double Diamond: "'+sel+'"'},
+    {icon:'📖',label:'Инструкция',prompt:'Найди в базе знаний инструкцию, связанную с: "'+sel+'"'},
+    {icon:'🔧',label:'Улучшить',prompt:'Предложи улучшение для: "'+sel+'"'},
+    {icon:'📊',label:'Анализ',prompt:'Проанализируй следующие данные: "'+sel+'"'}
   ];
+  if(!expanded){
+    return <div ref={menuRef} style={{position:'fixed',left:pos.x,top:pos.y,zIndex:20000,background:'linear-gradient(135deg,#1a1a2e,#16213e)',border:'1px solid rgba(99,102,241,.4)',borderRadius:10,boxShadow:'0 8px 32px rgba(0,0,0,.5)',padding:'4px 8px',display:'flex',alignItems:'center',gap:4,animation:'aiMenuFadeIn .15s ease-out'}}>
+      <span style={{fontSize:14,cursor:'pointer',padding:'2px 6px',borderRadius:6,background:'rgba(99,102,241,.2)',transition:'background .15s'}} onClick={()=>{setExpanded(true);}} title="AI-действия с выделенным текстом">🤖</span>
+      <span style={{fontSize:10,color:'#6366f1',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>«{sel.slice(0,30)}{sel.length>30?'...':''}»</span>
+    </div>;
+  }
   return <div ref={menuRef} style={{position:'fixed',left:pos.x,top:pos.y,zIndex:20000,background:'linear-gradient(135deg,#1a1a2e,#16213e)',border:'1px solid rgba(99,102,241,.4)',borderRadius:12,boxShadow:'0 12px 40px rgba(0,0,0,.6)',padding:6,minWidth:200,animation:'aiMenuFadeIn .15s ease-out'}}>
     <div style={{padding:'6px 10px',fontSize:10,color:'#6366f1',borderBottom:'1px solid rgba(99,102,241,.15)',marginBottom:4}}>🤖 AI-действия</div>
-    {actions.map(a=><div key={a.label} onClick={()=>{onAction(a.prompt);setPos(null);}} style={{padding:'8px 12px',fontSize:12,color:'#c8c8e0',cursor:'pointer',borderRadius:8,display:'flex',alignItems:'center',gap:8,transition:'background .15s'}} onMouseOver={e=>{e.currentTarget.style.background='rgba(99,102,241,.15)';}} onMouseOut={e=>{e.currentTarget.style.background='transparent';}}>
+    {actions.map(a=><div key={a.label} onClick={()=>{onAction(a.prompt);setPos(null);setExpanded(false);}} style={{padding:'8px 12px',fontSize:12,color:'#c8c8e0',cursor:'pointer',borderRadius:8,display:'flex',alignItems:'center',gap:8,transition:'background .15s'}} onMouseOver={e=>{e.currentTarget.style.background='rgba(99,102,241,.15)';}} onMouseOut={e=>{e.currentTarget.style.background='transparent';}}>
       <span>{a.icon}</span>{a.label}
     </div>)}
     <div style={{padding:'6px 10px',fontSize:9,color:'#4444aa',borderTop:'1px solid rgba(99,102,241,.1)',marginTop:4}}>«{sel.slice(0,40)}{sel.length>40?'...':''}»</div>
