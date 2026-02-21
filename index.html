@@ -1716,7 +1716,14 @@ function useStore(){
           } else {
             console.log('[Reconnect] Keeping localStorage data (richer or equal)');
           }
-        setSbStatus('online');setSbLoaded(true);
+          setSbStatus('online');
+        } else if(error){
+          console.warn('Reconnect error:',error);
+          setSbStatus('error');
+        } else {
+          setSbStatus('online');
+        }
+        setSbLoaded(true);
       }).catch(()=>{setSbStatus('error');setSbLoaded(true);});
   }else{setSbStatus('offline');}};
 
