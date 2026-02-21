@@ -979,12 +979,12 @@ const calcDaysBetween=(d1,d2)=>{if(!d1||!d2)return 0;const a=new Date(d1);const 
     const stage2Norm=Math.round(totalDays*0.22);
     const stage3Norm=totalDays-stage1Norm-stage2Norm;
     const norms={MINING:Math.round(stage1Norm*0.5),ASSEMBLING:Math.round(stage1Norm*0.5),IMPLEMENTATION:stage2Norm,ORGANIZATION:stage3Norm};
-    const buffers={MINING:Math.round(norms.MINING*BUFFER_PCT),ASSEMBLING:Math.round(norms.ASSEMBLING*BUFFER_PCT),IMPLEMENTATION:Math.round(stage2Norm*BUFFER_PCT),ORGANIZATION:Math.round(stage3Norm*BUFFER_PCT)};
+    const buffers={MINING:Math.round(Math.max(0,norms.MINING-7)*BUFFER_PCT),ASSEMBLING:Math.round(Math.max(0,norms.ASSEMBLING-7)*BUFFER_PCT),IMPLEMENTATION:Math.round(stage2Norm*BUFFER_PCT),ORGANIZATION:Math.round(stage3Norm*BUFFER_PCT)};
     const workDays={MINING:norms.MINING-buffers.MINING,ASSEMBLING:norms.ASSEMBLING-buffers.ASSEMBLING,IMPLEMENTATION:norms.IMPLEMENTATION-buffers.IMPLEMENTATION,ORGANIZATION:norms.ORGANIZATION-buffers.ORGANIZATION};
     // Per-stage normative: INIT+PLAN=2 days for Mining(7d), 1d each for others
     const stageNorms=(phCode,stCode,phNormDays)=>{
       const phWork=phNormDays*(1-BUFFER_PCT);
-      if(phCode==="MINING"){if(stCode==="INIT")return 3;if(stCode==="PLAN")return 4;const rem=phWork-7;return Math.max(1,Math.round(rem/3));}
+      if(phCode==="MINING"){if(stCode==="INIT")return 6;if(stCode==="PLAN")return 1;const rem=phWork-7;return Math.max(1,Math.round(rem/3));}
       if(stCode==="INIT"||stCode==="PLAN")return 1;
       const rem=phWork-2;return Math.max(1,Math.round(rem/3));
     };
@@ -1023,6 +1023,97 @@ const calcDaysBetween=(d1,d2)=>{if(!d1||!d2)return 0;const a=new Date(d1);const 
     if(totalOverdue>0)health="overdue";
     return {totalDays,totalWeeks:Math.round(totalWeeks*10)/10,elapsedDays,remainingDays,totalBuf,totalBufUsed,totalBufRemain,totalOverdue,totalActual,bufPct,health,phases:phaseResults,BUFFER_PCT};
   };
+
+  /* === Milestones (Этапы реализации) for Old Delivery === */
+  const calcProjectMilestones=(proj)=>{
+    if(proj.project_type!=='Old Delivery')return[];
+    const phases=proj.phases||[];
+    const payments=(proj.payments||[]).filter(pm=>!pm.prior_year);
+    const totalTranches=payments.length;
+
+    const phByCode=(code)=>phases.find(ph=>ph.phase_code===code);
+    const phCompleted=(code)=>{const ph=phByCode(code);return ph&&ph.status==='COMPLETED';};
+    const phEndDate=(code)=>{const ph=phByCode(code);return ph?(ph.actual_end||ph.period_end||''):''};
+
+    /* Find payment linked to a milestone's phases */
+    const findPayment=(phaseCodes,fallbackTranche)=>{
+      /* 1. By phase_id linking */
+      const phaseIds=phaseCodes.map(c=>{const ph=phByCode(c);return ph?ph.id:null;}).filter(Boolean);
+      let pm=payments.find(p=>p.phase_id&&phaseIds.includes(p.phase_id));
+      if(pm)return pm;
+      /* 2. Fallback by tranche_number */
+      if(fallbackTranche)pm=payments.find(p=>p.tranche_number===fallbackTranche);
+      return pm||null;
+    };
+
+    const milestoneStatus=(allPhasesCompleted,payment)=>{
+      if(!payment)return allPhasesCompleted?'DELIVERED':'PLANNED';
+      if(allPhasesCompleted&&payment.status==='PAID')return'PAID';
+      if(allPhasesCompleted&&(payment.status==='ACCRUED'||payment.status==='PAID'))return'DELIVERED';
+      return'PLANNED';
+    };
+
+    const buildMs=(name,codes,fallbackTr)=>{
+      const allDone=codes.every(c=>phCompleted(c));
+      const pm=findPayment(codes,fallbackTr);
+      const st=milestoneStatus(allDone,pm);
+      const lastPhaseEnd=codes.map(c=>phEndDate(c)).filter(Boolean).sort().pop()||'';
+      const deliveredDate=st==='DELIVERED'||st==='PAID'?
+        [lastPhaseEnd,pm?.accrued_date||''].filter(Boolean).sort().pop()||'':'';
+      const paidDate=st==='PAID'?(pm?.actual_date||pm?.accrued_date||''):'';
+      return{name,phases:codes,phasesCompleted:allDone,
+        payment:pm?{amount:Number(pm.amount)||0,status:pm.status,planned_date:pm.planned_date||'',accrued_date:pm.accrued_date||'',actual_date:pm.actual_date||''}:null,
+        planned_month:pm?.planned_date?.slice(0,7)||'',
+        delivered_date:deliveredDate,paid_date:paidDate,status:st};
+    };
+
+    const result=[];
+
+    /* Milestone 1: Mining & Assembling — always present for Old Delivery */
+    result.push(buildMs('Добыча и Сборка',['MINING','ASSEMBLING'],2));
+
+    if(totalTranches>3){
+      /* 4+ tranches: separate milestones for Impl and Org */
+      result.push(buildMs('Внедрение',['IMPLEMENTATION'],3));
+      result.push(buildMs('Организация',['ORGANIZATION'],4));
+    }else if(totalTranches===3){
+      /* 3 tranches: tranche #3 covers both Impl + Org as one combined milestone */
+      result.push(buildMs('Внедрение и Организация',['IMPLEMENTATION','ORGANIZATION'],3));
+    }
+    /* If <=2 tranches, only milestone 1 exists */
+
+    return result;
+  };
+
+    /* === ATS-based phase date calculation === */
+    const autoCalcPhaseDatesFromATS=(proj)=>{
+      if(!proj.ats_date||!proj.start_date)return null;
+      const ats=new Date(proj.ats_date);
+      const start=new Date(proj.start_date);
+      const addDays=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r;};
+      const fmtISO=d=>d.toISOString().slice(0,10);
+      const assemblyEnd=ats;
+      const assemblyStart=addDays(ats,-7);
+      const miningEnd=addDays(assemblyStart,-1);
+      const miningStart=start;
+      const miningTotalDays=Math.max(0,Math.ceil((miningEnd-miningStart)/(1000*60*60*24)));
+      const initPlanDays=7;/* normative INIT+PLAN */
+      const miningRemaining=Math.max(0,miningTotalDays-initPlanDays);
+      const miningBuffer=Math.round(miningRemaining/3);
+      const miningWork=miningRemaining-miningBuffer;
+      return {mining:{start:fmtISO(miningStart),end:fmtISO(miningEnd),totalDays:miningTotalDays,initPlan:initPlanDays,work:miningWork,buffer:miningBuffer},assembling:{start:fmtISO(assemblyStart),end:fmtISO(assemblyEnd),totalDays:7}};
+    };
+    const syncPhaseDatesFromATS=(proj)=>{
+      const calc=autoCalcPhaseDatesFromATS(proj);
+      if(!calc)return proj;
+      const phases=(proj.phases||[]).map(ph=>{
+        const code=(ph.phase_code||'').toUpperCase();
+        if(code==='MINING')return {...ph,period_start:calc.mining.start,period_end:calc.mining.end};
+        if(code==='ASSEMBLING')return {...ph,period_start:calc.assembling.start,period_end:calc.assembling.end};
+        return ph;
+      });
+      return {...proj,phases};
+    };
   const phCls=c=>{if(!c)return '';const u=c.toUpperCase();return u.includes('MINING')||u.includes('BPM')?'mining':u.includes('ASSEMBL')||u.includes('BPA')?'assembling':u.includes('IMPL')||u.includes('BPI')?'implementation':'organization';};
 
 const PHASE_DOC_TEMPLATES={
@@ -1071,7 +1162,7 @@ const ADMIN_SCALE_SECTIONS=[
   {key:'goal',num:1,title:'Цель',hint:'Бизнес-цели проекта',autoCheck:p=>(p.hypothesisBoard?.goals||[]).length>0,autoLabel:g=>{const gl=g.hypothesisBoard?.goals||[];return gl.length>0?gl.map(x=>x.title).join(', '):'Нет целей'}},
   {key:'purpose',num:2,title:'Замысел',hint:'Ключевой замысел и ценность для клиента',autoCheck:p=>!!(p.notes||p.description||'').trim(),autoLabel:p=>'Из описания проекта'},
   {key:'policy',num:3,title:'Политика',hint:'Организационные правила и стандарты',autoCheck:()=>false,autoLabel:()=>''},
-  {key:'plans',num:4,title:'Планы',hint:'Этапы и фазы работ',autoCheck:p=>(p.phases||[]).length>0,autoLabel:p=>{const ph=p.phases||[];const done=ph.filter(x=>x.status==='COMPLETED').length;return 'Фаз: '+ph.length+', завершено: '+done;}},
+  {key:'plans',num:4,title:'Планы',hint:'Стадии и фазы работ',autoCheck:p=>(p.phases||[]).length>0,autoLabel:p=>{const ph=p.phases||[];const done=ph.filter(x=>x.status==='COMPLETED').length;return 'Фаз: '+ph.length+', завершено: '+done;}},
   {key:'programs',num:5,title:'Программы',hint:'Треки BPM и проверки гипотез',autoCheck:p=>(p.tracks||[]).length>0,autoLabel:p=>{const bpm=(p.tracks||[]).filter(t=>(t.track_class||'').toUpperCase()==='BPM').length;return 'Треков: '+(p.tracks||[]).length+', BPM: '+bpm;}},
   {key:'tasks',num:6,title:'Задачи',hint:'Список задач и действий',autoCheck:p=>(p.tasks||[]).length>0,autoLabel:p=>{const done=(p.tasks||[]).filter(t=>t.status==='DONE'||t.status==='COMPLETED').length;return 'Задач: '+(p.tasks||[]).length+', выполнено: '+done;}},
   {key:'vfp',num:7,title:'ЦКП',hint:'Ценный конечный продукт (Definition of Done)',autoCheck:()=>false,autoLabel:()=>''},
@@ -2024,6 +2115,13 @@ function useStore(){
       setData(d=>({...d,recommendations:[..._entries13,...(d.recommendations||[])]}));
       console.log('[Migration Rule 13] Added 12 development recommendations to Knowledge kanban');
     }
+    /* Rule 14: Clear ALL overhead_registry entries (stale / incorrect data) */
+    if((data.overhead_registry||[]).length>0){
+      console.log('[Migration Rule 14] Clearing '+data.overhead_registry.length+' stale overhead_registry entries');
+      setData(d=>({...d,overhead_registry:[]}));
+      /* Also clear synced_oh_id references in project overheads since registry entries are gone */
+      setData(d=>({...d,projects:d.projects.map(p=>({...p,overheads:(p.overheads||[]).map(oh=>oh.synced_oh_id?{...oh,synced_oh_id:null}:oh)}))}));
+    }
   },[]);
 
   const addClient=(c)=>{const cl={id:uuid(),created_at:now(),...c};setData(d=>({...d,clients:[...d.clients,cl]}));showToast('Клиент добавлен');return cl;};
@@ -2070,6 +2168,8 @@ function useStore(){
   };
 
   const updateProject=(id,updates)=>{
+    /* ATS sync: when ats_date changes, auto-calculate Mining/Assembling dates */
+    if(updates.ats_date!==undefined){const _tmpP={...data.projects.find(x=>x.id===id),...updates};const _synced=syncPhaseDatesFromATS(_tmpP);if(_synced.phases)updates.phases=_synced.phases;}
     const prev=data.projects.find(p=>p.id===id);
     setData(d=>({...d,projects:d.projects.map(p=>p.id===id?{...p,...updates,updated_at:now()}:p)}));
     showToast('Проект обновлён');
@@ -2293,16 +2393,48 @@ function useStore(){
     setData(d=>({...d,recommendations:(d.recommendations||[]).filter(r=>r.id!==id)}));
   };
 
+  const _projRg=(proj)=>{if(!proj)return'РГ1';if(proj.project_type==='ФК')return'ФК';return(proj.work_group||'')==='РГ2'?'РГ2':'РГ1';};
   const addOverhead=(projId,oh)=>{
-    const entry={id:uuid(),name:oh.name||'',amount:Number(oh.amount)||0,date:oh.date||now().slice(0,10),notes:oh.notes||''};
-    setData(d=>({...d,projects:d.projects.map(p=>p.id===projId?{...p,overheads:[entry,...(p.overheads||[])]}:p)}));
-    showToast('Накладная добавлена');
+    const ohId=uuid();const regId=uuid();
+    const entry={id:ohId,name:oh.name||'',amount:Number(oh.amount)||0,date:oh.date||now().slice(0,10),notes:oh.notes||'',category:oh.category||'Прочее',cls:oh.cls||'прочее',format:oh.format||'счет',responsible:oh.responsible||'',cf_type:oh.cf_type||'OCF',prior_year:oh.prior_year||false,synced_reg_id:regId};
+    const proj=data.projects.find(p=>p.id===projId);
+    const rg=oh.rg||_projRg(proj);
+    const regEntry={id:regId,date:entry.date,amount:entry.amount,rg:rg,category:entry.category,cls:entry.cls,format:entry.format,responsible:entry.responsible,comment:entry.name+(entry.notes?' — '+entry.notes:''),project_id:projId,scope:'project',cf_type:entry.cf_type,verified:false,synced_oh_id:ohId,source:'project',prior_year:entry.prior_year,created_at:now()};
+    setData(d=>({...d,projects:d.projects.map(p=>p.id===projId?{...p,overheads:[entry,...(p.overheads||[])]}:p),overhead_registry:[regEntry,...(d.overhead_registry||[])]}));
+    showToast('Накладная добавлена + синхронизирована в реестр');
   };
   const updateOverhead=(projId,ohId,updates)=>{
-    setData(d=>({...d,projects:d.projects.map(p=>p.id===projId?{...p,overheads:(p.overheads||[]).map(x=>x.id===ohId?{...x,...updates}:x)}:p)}));
+    setData(d=>{
+      const proj=d.projects.find(p=>p.id===projId);
+      const oh=proj&&(proj.overheads||[]).find(x=>x.id===ohId);
+      const regId=oh&&oh.synced_reg_id;
+      const merged=oh?{...oh,...updates}:updates;
+      const regUpdates={};
+      if(updates.name!==undefined||updates.notes!==undefined)regUpdates.comment=(merged.name||'')+(merged.notes?' — '+merged.notes:'');
+      if(updates.amount!==undefined)regUpdates.amount=Number(updates.amount)||0;
+      if(updates.date!==undefined)regUpdates.date=updates.date;
+      if(updates.category!==undefined)regUpdates.category=updates.category;
+      if(updates.cls!==undefined)regUpdates.cls=updates.cls;
+      if(updates.format!==undefined)regUpdates.format=updates.format;
+      if(updates.responsible!==undefined)regUpdates.responsible=updates.responsible;
+      if(updates.cf_type!==undefined)regUpdates.cf_type=updates.cf_type;
+      if(updates.prior_year!==undefined)regUpdates.prior_year=updates.prior_year;
+      return {...d,
+        projects:d.projects.map(p=>p.id===projId?{...p,overheads:(p.overheads||[]).map(x=>x.id===ohId?{...x,...updates}:x)}:p),
+        overhead_registry:regId?(d.overhead_registry||[]).map(r=>r.id===regId?{...r,...regUpdates}:r):(d.overhead_registry||[])
+      };
+    });
   };
   const removeOverhead=(projId,ohId)=>{
-    setData(d=>({...d,projects:d.projects.map(p=>p.id===projId?{...p,overheads:(p.overheads||[]).filter(x=>x.id!==ohId)}:p)}));
+    setData(d=>{
+      const proj=d.projects.find(p=>p.id===projId);
+      const oh=proj&&(proj.overheads||[]).find(x=>x.id===ohId);
+      const regId=oh&&oh.synced_reg_id;
+      return {...d,
+        projects:d.projects.map(p=>p.id===projId?{...p,overheads:(p.overheads||[]).filter(x=>x.id!==ohId)}:p),
+        overhead_registry:regId?(d.overhead_registry||[]).filter(r=>r.id!==regId):(d.overhead_registry||[])
+      };
+    });
     showToast('Накладная удалена');
   };
 
@@ -2336,8 +2468,15 @@ function useStore(){
 
   /* ===== Overhead Registry CRUD ===== */
   const addOhRegistryItem=(e)=>{
-    const entry={id:uuid(),date:e.date||now().slice(0,10),amount:Number(e.amount)||0,rg:e.rg||'КБ',category:e.category||'',cls:e.cls||'',format:e.format||'счет',responsible:e.responsible||'',comment:e.comment||'',project_id:e.project_id||null,scope:e.scope||(e.project_id?'project':'company'),cf_type:e.cf_type||'OCF',verified:!!e.verified,synced_oh_id:null,synced_kb_id:null,source:e.source||'manual',created_at:now()};
-    setData(d=>({...d,overhead_registry:[entry,...(d.overhead_registry||[])]}));
+    const entry={id:uuid(),date:e.date||now().slice(0,10),amount:Number(e.amount)||0,rg:e.rg||'КБ',category:e.category||'',cls:e.cls||'',format:e.format||'счет',responsible:e.responsible||'',comment:e.comment||'',project_id:e.project_id||null,scope:e.scope||(e.project_id?'project':'company'),cf_type:e.cf_type||'OCF',verified:!!e.verified,synced_oh_id:null,synced_kb_id:null,source:e.source||'manual',prior_year:e.prior_year||false,created_at:now()};
+    const isProjectScope=entry.scope==='project'&&entry.project_id&&(entry.rg==='РГ1'||entry.rg==='РГ2'||entry.rg==='ФК'||entry.rg==='IB');
+    if(isProjectScope){
+      const ohId=uuid();entry.synced_oh_id=ohId;
+      const projOh={id:ohId,name:entry.comment||entry.category||'',amount:entry.amount,date:entry.date,notes:'',category:entry.category||'Прочее',cls:entry.cls||'прочее',format:entry.format||'счет',responsible:entry.responsible||'',cf_type:entry.cf_type||'OCF',prior_year:entry.prior_year||false,synced_reg_id:entry.id};
+      setData(d=>({...d,overhead_registry:[entry,...(d.overhead_registry||[])],projects:d.projects.map(p=>p.id===entry.project_id?{...p,overheads:[projOh,...(p.overheads||[])]}:p)}));
+    } else {
+      setData(d=>({...d,overhead_registry:[entry,...(d.overhead_registry||[])]}));
+    }
     return entry;
   };
   const updateOhRegistryItem=(id,updates)=>{
@@ -2780,8 +2919,8 @@ function useStore(){
         }
       }
       return {...p,phases,tracks:tracks||(p.tracks||[]),updated_at:now()};
-    })}));showToast('Этап продвинут');
-    _chatLog(projId,'⏩ Этап проекта продвинут');
+    })}));showToast('Стадия продвинута');
+    _chatLog(projId,'⏩ Стадия проекта продвинута');
   };
 
   const earlyCompleteProject=(projId,settlement)=>{
@@ -3217,7 +3356,7 @@ function NewProjectModal({store,onClose,initialName,initialClientId}){
     </div>
     {showNewClient && <div className="card" style={{marginBottom:14}}><div className="form-row"><div className="form-group"><label>Название клиента</label><input value={nc.name} onChange={e=>setNc(p=>({...p,name:e.target.value}))}/></div><div className="form-group"><label>Отрасль</label><input value={nc.industry} onChange={e=>setNc(p=>({...p,industry:e.target.value}))}/></div></div><div className="form-row"><div className="form-group"><label>Страна</label><select value={nc.country} onChange={e=>setNc(p=>({...p,country:e.target.value}))}><option value="">— Страна —</option>{COUNTRIES.map(co=><option key={co} value={co}>{co}</option>)}</select></div><div className="form-group"/></div><button type="button" className="btn btn-success btn-sm" onClick={createClient}>Создать клиента</button></div>}
     <div className="form-row"><div className="form-group"><label>Стоимость контракта (₽)</label><input type="number" value={f.total_contract_value} onChange={e=>upd('total_contract_value',e.target.value)} placeholder={tranchesTotal>0?'Авто из траншей: '+fmt(tranchesTotal):''}/></div><div className="form-group"><label>Налоговый режим</label><div className="tax-select" style={{display:'flex',gap:4}}>{[{v:0,l:'0%'},{v:11,l:'11%'},{v:22,l:'22%'}].map(r=><div key={r.v} className={'tax-btn'+(Number(f.tax_rate)===r.v?' active':'')} onClick={()=>upd('tax_rate',r.v)} style={{cursor:'pointer'}}>{r.l}</div>)}</div></div></div>
-    <div className="form-row"><div className="form-group"><label>Дата старта</label><input type="date" value={f.start_date} onChange={e=>upd('start_date',e.target.value)}/></div><div className="form-group"><label>Дата окончания</label><input type="date" value={f.target_end_date} onChange={e=>upd('target_end_date',e.target.value)}/></div></div>
+    <div className="form-row"><div className="form-group"><label>Дата старта</label><input type="date" value={f.start_date} onChange={e=>upd('start_date',e.target.value)}/></div><div className="form-group"><label>Дата окончания</label><input type="date" value={f.target_end_date} onChange={e=>upd('target_end_date',e.target.value)}/></div><div className="form-group"><label>Дата защиты АТС</label><input type="date" value={f.ats_date||''} onChange={e=>upd('ats_date',e.target.value)}/></div></div>
     <div style={{marginBottom:12,padding:10,background:'var(--bg1)',borderRadius:8,border:'1px solid var(--border)'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}><span style={{fontSize:12,fontWeight:600}}>Транши</span><button type="button" className="btn btn-primary btn-sm" style={{fontSize:10,padding:'2px 8px'}} onClick={addTranche}>+ Транш</button></div>
       {tranches.length>0&&<table style={{width:'100%',fontSize:12,borderCollapse:'collapse'}}><thead><tr style={{borderBottom:'1px solid var(--border)'}}><th style={{width:36,textAlign:'center',padding:'2px 4px'}}>#</th><th style={{padding:'2px 4px'}}>Сумма (₽)</th><th style={{padding:'2px 4px'}}>Период</th><th style={{padding:'2px 4px'}}>Статус</th><th style={{width:28}}></th></tr></thead><tbody>{tranches.map((t,i)=>{const tYear=t.date?parseInt(t.date.slice(0,4)):_curYear;const isPrior=tYear<_curYear;return <tr key={i} style={isPrior?{background:'rgba(255,193,7,0.08)'}:{}}>
@@ -3634,7 +3773,7 @@ function EditPaymentModal({payment:pm,projId,store,onClose}){
     <div className="form-row"><div className="form-group"><label>Факт. дата оплаты</label><input type="date" value={f.actual_date} onChange={e=>setF(p=>({...p,actual_date:e.target.value}))}/></div>
     <div className="form-group" style={{display:'flex',alignItems:'center',gap:6,paddingTop:18}}><input type="checkbox" checked={f.prior_year} onChange={e=>setF(p=>({...p,prior_year:e.target.checked}))}/><label style={{margin:0,fontSize:12}}>Приход прошлого года</label></div></div>
     {f.tranche_number===1&&<div className="form-row"><div className="form-group" style={{display:'flex',alignItems:'center',gap:6}}><input type="checkbox" checked={f.is_upsell} onChange={e=>setF(p=>({...p,is_upsell:e.target.checked}))}/><label style={{margin:0,fontSize:12,color:'var(--amber)'}}>Допродажа (upsell)</label></div></div>}
-    {phaseGroups.length>0&&<div className="form-group"><label>Привязка к этапу</label><select value={f.phase_id||''} onChange={e=>setF(p=>({...p,phase_id:e.target.value||null}))}>
+    {phaseGroups.length>0&&<div className="form-group"><label>Привязка к стадии</label><select value={f.phase_id||''} onChange={e=>setF(p=>({...p,phase_id:e.target.value||null}))}>
       <option value="">— Без привязки —</option>
       {phaseGroups.map(g=><option key={g.id} value={g.phases[0]?.id||g.id}>{g.group_name}</option>)}
     </select></div>}
@@ -3734,6 +3873,41 @@ function Dashboard({store,goProject}){
 
   /* phase docs completion */
   const avgDocsCompl=active.length>0?Math.round(active.reduce((s,p)=>{const codes=['MINING','ASSEMBLING','IMPLEMENTATION','ORGANIZATION'];let total=0,done=0;codes.forEach(c=>{const docs=getPhaseDocsState(p,c);total+=docs.length;done+=docs.filter(d=>d.status==='DONE').length;});return s+(total>0?done/total*100:0);},0)/active.length):0;
+
+  /* === Milestones (Этапы реализации) aggregation === */
+  const milestoneData=React.useMemo(()=>{
+    const oldDel=data.projects.filter(p=>p.project_type==='Old Delivery'&&p.status!=='CANCELLED');
+    const allMs=oldDel.flatMap(p=>calcProjectMilestones(p).map(m=>({...m,project:p})));
+    const ms2026=allMs.filter(m=>(m.planned_month||'')>='2026-01'||(m.delivered_date||'')>='2026-01'||(m.paid_date||'')>='2026-01');
+    const byMonth={};
+    ms2026.forEach(m=>{
+      const key=m.planned_month||'без даты';
+      if(!byMonth[key])byMonth[key]={planned:0,delivered:0,paid:0,deliveredSum:0,paidSum:0,items:[]};
+      byMonth[key].planned++;
+      byMonth[key].items.push(m);
+      if(m.status==='DELIVERED'||m.status==='PAID'){byMonth[key].delivered++;byMonth[key].deliveredSum+=m.payment?.amount||0;}
+      if(m.status==='PAID'){byMonth[key].paid++;byMonth[key].paidSum+=m.payment?.amount||0;}
+    });
+    const months=Object.entries(byMonth).sort((a,b)=>a[0].localeCompare(b[0]));
+    const totPlanned=ms2026.length;
+    const totDelivered=ms2026.filter(m=>m.status==='DELIVERED'||m.status==='PAID').length;
+    const totPaid=ms2026.filter(m=>m.status==='PAID').length;
+    const totDeliveredSum=ms2026.filter(m=>m.status==='DELIVERED'||m.status==='PAID').reduce((s,m)=>s+(m.payment?.amount||0),0);
+    const totPaidSum=ms2026.filter(m=>m.status==='PAID').reduce((s,m)=>s+(m.payment?.amount||0),0);
+    /* avg days from planned to delivered */
+    let durSum=0,durCnt=0;
+    ms2026.forEach(m=>{
+      if(m.delivered_date&&m.planned_month){
+        const pd=new Date(m.planned_month+'-15');
+        const dd=new Date(m.delivered_date);
+        const days=Math.ceil((dd-pd)/(864e5));
+        if(!isNaN(days)){durSum+=days;durCnt++;}
+      }
+    });
+    const avgDuration=durCnt>0?Math.round(durSum/durCnt):0;
+    const convPct=totDelivered>0?Math.round(totPaid/totDelivered*100):0;
+    return{oldDel,allMs:ms2026,months,totPlanned,totDelivered,totPaid,totDeliveredSum,totPaidSum,avgDuration,convPct};
+  },[data]);
 
   return <div>
     <h2 className="page-title">Дашборд портфеля</h2>
@@ -3837,6 +4011,100 @@ function Dashboard({store,goProject}){
         </div>)}
       </div>
     </div>
+
+    {/* === ROW 4b: Milestones (Этапы реализации Old Delivery) === */}
+    {milestoneData.oldDel.length>0&&<div className="dash-section">
+      <div className="dash-card">
+        <div className="dc-title"><span>Этапы реализации (Old Delivery)</span><span style={{fontSize:10,color:'var(--text2)'}}>{milestoneData.oldDel.length} проектов</span></div>
+
+        {/* KPI row */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:16}}>
+          <div style={{textAlign:'center',padding:8,background:'var(--bg3)',borderRadius:8}}>
+            <div style={{fontSize:18,fontWeight:700,color:'var(--accent)'}}>{milestoneData.totPlanned}</div>
+            <div style={{fontSize:10,color:'var(--text2)'}}>Всего этапов</div>
+          </div>
+          <div style={{textAlign:'center',padding:8,background:'var(--bg3)',borderRadius:8}}>
+            <div style={{fontSize:18,fontWeight:700,color:'var(--green)'}}>{milestoneData.totDelivered}</div>
+            <div style={{fontSize:10,color:'var(--text2)'}}>Оказано</div>
+          </div>
+          <div style={{textAlign:'center',padding:8,background:'var(--bg3)',borderRadius:8}}>
+            <div style={{fontSize:18,fontWeight:700,color:'var(--emerald)'}}>{milestoneData.totPaid}</div>
+            <div style={{fontSize:10,color:'var(--text2)'}}>Оплачено</div>
+          </div>
+          <div style={{textAlign:'center',padding:8,background:'var(--bg3)',borderRadius:8}}>
+            <div style={{fontSize:18,fontWeight:700,color:'var(--sky)'}}>{milestoneData.avgDuration} дн.</div>
+            <div style={{fontSize:10,color:'var(--text2)'}}>Ср. длительность</div>
+          </div>
+        </div>
+
+        {/* Monthly table */}
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',fontSize:11,borderCollapse:'collapse'}}>
+            <thead><tr style={{borderBottom:'2px solid var(--border)'}}>
+              <th style={{textAlign:'left',padding:'4px 8px'}}>Месяц</th>
+              <th style={{textAlign:'center',padding:'4px 8px'}}>Плановых</th>
+              <th style={{textAlign:'center',padding:'4px 8px',color:'var(--green)'}}>Оказано</th>
+              <th style={{textAlign:'center',padding:'4px 8px',color:'var(--emerald)'}}>Оплачено</th>
+              <th style={{textAlign:'right',padding:'4px 8px'}}>Сумма оказ.</th>
+              <th style={{textAlign:'right',padding:'4px 8px'}}>Сумма оплач.</th>
+            </tr></thead>
+            <tbody>
+              {milestoneData.months.map(([month,d])=><tr key={month} style={{borderBottom:'1px solid var(--border)'}}>
+                <td style={{padding:'4px 8px',fontWeight:600}}>{month}</td>
+                <td style={{textAlign:'center',padding:'4px 8px'}}>{d.planned}</td>
+                <td style={{textAlign:'center',padding:'4px 8px',color:'var(--green)',fontWeight:600}}>{d.delivered||'—'}</td>
+                <td style={{textAlign:'center',padding:'4px 8px',color:'var(--emerald)',fontWeight:600}}>{d.paid||'—'}</td>
+                <td style={{textAlign:'right',padding:'4px 8px'}}>{d.deliveredSum>0?fmt(d.deliveredSum):'—'}</td>
+                <td style={{textAlign:'right',padding:'4px 8px'}}>{d.paidSum>0?fmt(d.paidSum):'—'}</td>
+              </tr>)}
+              {milestoneData.months.length>0&&<tr style={{borderTop:'2px solid var(--border)',fontWeight:700}}>
+                <td style={{padding:'4px 8px'}}>Итого</td>
+                <td style={{textAlign:'center',padding:'4px 8px'}}>{milestoneData.totPlanned}</td>
+                <td style={{textAlign:'center',padding:'4px 8px',color:'var(--green)'}}>{milestoneData.totDelivered}</td>
+                <td style={{textAlign:'center',padding:'4px 8px',color:'var(--emerald)'}}>{milestoneData.totPaid}</td>
+                <td style={{textAlign:'right',padding:'4px 8px'}}>{milestoneData.totDeliveredSum>0?fmt(milestoneData.totDeliveredSum):'—'}</td>
+                <td style={{textAlign:'right',padding:'4px 8px'}}>{milestoneData.totPaidSum>0?fmt(milestoneData.totPaidSum):'—'}</td>
+              </tr>}
+            </tbody>
+          </table>
+        </div>
+        {milestoneData.months.length===0&&<div className="empty" style={{padding:12}}>Нет этапов с 2026 года</div>}
+
+        {/* Conversion bar */}
+        {milestoneData.totPlanned>0&&<div style={{marginTop:12,display:'flex',alignItems:'center',gap:8,fontSize:10,color:'var(--text2)'}}>
+          <span>Конверсия оказан→оплачен: <b style={{color:'var(--accent)'}}>{milestoneData.convPct}%</b></span>
+          <div style={{flex:1,height:6,background:'var(--bg4)',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:milestoneData.convPct+'%',background:'var(--emerald)',borderRadius:3}}></div></div>
+        </div>}
+
+        {/* Detail by project (collapsed) */}
+        {milestoneData.allMs.length>0&&<details style={{marginTop:12}}>
+          <summary style={{fontSize:10,color:'var(--accent)',cursor:'pointer'}}>Детализация по проектам ({milestoneData.allMs.length} этапов)</summary>
+          <table style={{width:'100%',fontSize:10,borderCollapse:'collapse',marginTop:8}}>
+            <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
+              <th style={{textAlign:'left',padding:'3px 6px'}}>Проект</th>
+              <th style={{textAlign:'left',padding:'3px 6px'}}>Этап</th>
+              <th style={{textAlign:'center',padding:'3px 6px'}}>Статус</th>
+              <th style={{textAlign:'center',padding:'3px 6px'}}>План</th>
+              <th style={{textAlign:'center',padding:'3px 6px'}}>Факт</th>
+              <th style={{textAlign:'right',padding:'3px 6px'}}>Сумма</th>
+            </tr></thead>
+            <tbody>{milestoneData.allMs.map((m,i)=><tr key={i} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>goProject(m.project.id)}>
+              <td style={{padding:'3px 6px',color:'var(--accent2)',fontWeight:600}}>{m.project.code||m.project.name}</td>
+              <td style={{padding:'3px 6px'}}>{m.name}</td>
+              <td style={{textAlign:'center',padding:'3px 6px'}}>
+                <span style={{padding:'1px 6px',borderRadius:4,fontSize:9,fontWeight:600,
+                  background:m.status==='PAID'?'rgba(16,185,129,.15)':m.status==='DELIVERED'?'rgba(34,197,94,.15)':'rgba(96,165,250,.15)',
+                  color:m.status==='PAID'?'var(--emerald)':m.status==='DELIVERED'?'var(--green)':'var(--sky)'
+                }}>{m.status==='PAID'?'Оплачен':m.status==='DELIVERED'?'Оказан':'Плановый'}</span>
+              </td>
+              <td style={{textAlign:'center',padding:'3px 6px',fontSize:9}}>{m.planned_month||'—'}</td>
+              <td style={{textAlign:'center',padding:'3px 6px',fontSize:9}}>{m.delivered_date?m.delivered_date.slice(0,10):'—'}</td>
+              <td style={{textAlign:'right',padding:'3px 6px'}}>{m.payment?fmt(m.payment.amount):'—'}</td>
+            </tr>)}</tbody>
+          </table>
+        </details>}
+      </div>
+    </div>}
 
     {/* === ROW 5: Team + Work Groups === */}
     <div className="dash-grid-2 dash-section">
@@ -3951,7 +4219,7 @@ function ProjectList({store,goProject,filters,setFilters}){
       <select className="filter-select" value={sortBy} onChange={e=>uf('sortBy',e.target.value)}><option value="buffer">Буфер ↑</option><option value="segment">Сегмент</option><option value="name">Название</option></select>
       {hasActiveFilters&&<button className="btn btn-secondary btn-sm" style={{marginLeft:4,fontSize:10,padding:'2px 8px'}} onClick={clearFilters}>✕ Сбросить фильтры</button>}
     </div>
-    <div style={{overflowX:'auto'}}><table className="project-table"><thead><tr><th>Код</th><th>Название</th><th>Клиент</th><th>РГ</th><th>Тип</th><th>Статус</th><th>Старт</th><th>Дедлайн</th><th>Этап</th><th>Буфер</th><th>P&L</th><th>Сегм.</th></tr></thead>
+    <div style={{overflowX:'auto'}}><table className="project-table"><thead><tr><th>Код</th><th>Название</th><th>Клиент</th><th>РГ</th><th>Тип</th><th>Статус</th><th>Старт</th><th>Дедлайн</th><th>Стадия</th><th>Буфер</th><th>P&L</th><th>Сегм.</th></tr></thead>
     <tbody>{projects.map(p=>{const tri=calcTriage(p);return <tr key={p.id} className="clickable" onClick={()=>goProject(p.id)}>
       <td style={{color:'var(--accent2)',fontWeight:600,whiteSpace:'nowrap'}}>{p.code}</td>
       <td style={{maxWidth:260,whiteSpace:'nowrap'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',display:'inline-block',maxWidth:160,verticalAlign:'middle'}}>{p.name}</span>{!(Number(p.total_contract_value)||0)&&<span title="Не указана сумма контракта" style={{color:'var(--red)',cursor:'pointer',marginLeft:4,fontSize:14,verticalAlign:'middle'}} onClick={e=>{e.stopPropagation();goProject(p.id,'financials');}}>💲</span>}{!(p.payments||[]).length&&<span title="Нет траншей" style={{color:'var(--red)',cursor:'pointer',marginLeft:2,fontSize:14,verticalAlign:'middle'}} onClick={e=>{e.stopPropagation();goProject(p.id,'financials');}}>💰</span>}{(()=>{const _oh=p.overheads||[];const _cyPfx=String(new Date().getFullYear());if(!_oh.length)return <span title="Нет накладных" style={{color:'var(--yellow)',cursor:'pointer',marginLeft:2,fontSize:13,verticalAlign:'middle'}} onClick={e=>{e.stopPropagation();goProject(p.id,'financials');}}>❗</span>;if(!_oh.some(x=>(x.date||'').startsWith(_cyPfx))){const _ackAt=p.oh_ack_at||'';const _lastReset=(()=>{const n=new Date();const pts=[];for(let d=0;d<8;d++){const c=new Date(n.getTime()-d*864e5);c.setUTCHours(12,0,0,0);const wd=c.getUTCDay();if((wd===1||wd===6)&&c<=n)pts.push(c);}return pts.length?pts[0].toISOString():'';})();const _expired=!_ackAt||_ackAt<_lastReset;if(!_expired)return null;return <React.Fragment><span title="Нет накладных в текущем году" style={{color:'var(--yellow)',cursor:'pointer',marginLeft:2,fontSize:13,verticalAlign:'middle'}} onClick={e=>{e.stopPropagation();goProject(p.id,'financials');}}>❗❗</span><span title="Подтвердить: накладных пока нет" style={{cursor:'pointer',marginLeft:2,fontSize:11,verticalAlign:'middle',color:'var(--green)',fontWeight:700}} onClick={e=>{e.stopPropagation();store.updateProject(p.id,{oh_ack_at:new Date().toISOString()});}}>✓</span></React.Fragment>;}return null;})()}</td>
@@ -4565,6 +4833,7 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
   const setTab=(t)=>{localStorage.setItem('pp_projTab',t);_setTab(t);};
   const [showAssign,setShowAssign]=useState(false);
   const [showTrack,setShowTrack]=useState(false);
+  const [addTrackPhaseClass,setAddTrackPhaseClass]=useState(null);
   const [showTask,setShowTask]=useState(false);
   const [showBlocker,setShowBlocker]=useState(false);
   const [showPay,setShowPay]=useState(false);
@@ -4599,7 +4868,7 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
   const _teAddRow=()=>setTeRows(r=>[...r,{person_id:'',month:new Date().toISOString().slice(0,7),hours:'',work_phase:'MINING_ASSEMBLING',description:''}]);
   const _teUpd=(i,k,v)=>setTeRows(r=>r.map((x,j)=>j===i?{...x,[k]:v}:x));
   const _teRm=(i)=>setTeRows(r=>r.filter((_,j)=>j!==i));
-  const [ohf,setOhf]=useState({name:'',amount:'',date:'',notes:''});
+  const [ohf,setOhf]=useState({name:'',amount:'',date:'',notes:'',category:'Прочее',cls:'прочее',format:'счет',responsible:'',cf_type:'OCF',prior_year:false});
   const [gf,setGf]=useState({title:'',description:'',goal_type:'BUSINESS'});
   const [sf,setSf]=useState({name:'',role:'',goalId:'',subGoalId:''});
   const [sgForm,setSgForm]=useState({goalId:null,title:''});
@@ -4610,6 +4879,17 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
   const [editMs,setEditMs]=useState(null);
   const [embedDoc,setEmbedDoc]=useState(null);
   const [asGoalInline,setAsGoalInline]=useState({show:false,title:'',goal_type:'BUSINESS'});
+  /* Metrics Map state (must be at component level for Rules of Hooks) */
+  const [mmShowImport,setMmShowImport]=useState(false);
+  const [mmJsonText,setMmJsonText]=useState('');
+  const [mmDragOver,setMmDragOver]=useState(false);
+  const [mmShowAddNode,setMmShowAddNode]=useState(false);
+  const [mmNn,setMmNn]=useState({id:'',label:'',group:'finance',fact:'',target:'',tip:'',comment:''});
+  const [mmShowAddLink,setMmShowAddLink]=useState(false);
+  const [mmNl,setMmNl]=useState({from:'',to:'',group:''});
+  const [mmEditNode,setMmEditNode]=useState(null);
+  const [mmHovNode,setMmHovNode]=useState(null);
+  const [mmHovPos,setMmHovPos]=useState({x:0,y:0});
   const client=store.data.clients.find(c=>c.id===p.client_id);
 
   const totalHours=(p.timeEntries||[]).reduce((s,te)=>s+(Number(te.hours)||0),0);
@@ -4658,7 +4938,7 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
     {showEditClient&&client&&<EditClientModal client={client} store={store} onClose={()=>setShowEditClient(false)} onCreateProject={()=>{setShowEditClient(false);setShowNewProjClient(true);}} onGoProject={goProject?(id)=>{setShowEditClient(false);goProject(id);}:null}/>}
     {showNewProjClient&&client&&<NewProjectModal store={store} onClose={()=>setShowNewProjClient(false)} initialClientId={client.id}/>}
     <div className="tab-bar">
-      {['overview','tracks','competencies','admin_scale','documents','financials','metrics_map'].map(t=><div key={t} className={`tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{{overview:'Обзор',tracks:'Треки / Issue Tree',competencies:'Команда',admin_scale:'Админ.шкала',documents:'Документы',financials:'Финансы',metrics_map:'Карта метрик'}[t]}</div>)}
+      {['overview','tracks','competencies','admin_scale','documents','financials','metrics_map'].map(t=><div key={t} className={`tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{{overview:'Обзор',tracks:'Issue Tree',competencies:'Команда',admin_scale:'Админ.шкала',documents:'Документы',financials:'Финансы',metrics_map:'Карта метрик'}[t]}</div>)}
     </div>
 
     {tab==='overview'&&<div>
@@ -4711,9 +4991,15 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
       })()}
 
       {/* === Phases (moved from tab) === */}
+      {/* ATS date warning */}
+      {(p.project_type==='Old Delivery')&&!p.ats_date&&<div style={{padding:'10px 14px',background:'rgba(255,193,7,0.15)',border:'1px solid var(--amber)',borderRadius:8,marginBottom:12,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+        <span style={{fontSize:12,color:'var(--amber)'}}>⚠️ Укажите дату защиты АТС для автоматического расчёта дат фаз</span>
+        <input type="date" style={{fontSize:12,padding:'3px 8px',borderRadius:4,border:'1px solid var(--amber)',background:'var(--bg2)',color:'var(--text1)'}} onBlur={e=>{if(e.target.value&&e.target.value.length>=10)store.updateProject(p.id,{ats_date:e.target.value})}} onKeyDown={e=>{if(e.key==='Enter'&&e.target.value&&e.target.value.length>=10){store.updateProject(p.id,{ats_date:e.target.value});e.target.blur();}}}/>
+      </div>}
+      {p.ats_date&&<div style={{fontSize:11,color:'var(--accent)',marginBottom:8}}>📅 Дата защиты АТС: <b>{fmtD(p.ats_date)}</b> <input type="date" defaultValue={p.ats_date} onBlur={e=>{if(e.target.value&&e.target.value.length>=10&&e.target.value!==p.ats_date)store.updateProject(p.id,{ats_date:e.target.value})}} onKeyDown={e=>{if(e.key==='Enter'&&e.target.value&&e.target.value.length>=10){store.updateProject(p.id,{ats_date:e.target.value});e.target.blur();}}} style={{fontSize:10,padding:'1px 4px',marginLeft:6,borderRadius:4,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text1)'}}/></div>}
       {/* Header buttons */}
       <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:12}}>
-        {p.status==='ACTIVE'&&<button className="btn btn-primary btn-sm" onClick={()=>store.advanceStage(p.id)}>Продвинуть этап →</button>}
+        {p.status==='ACTIVE'&&<button className="btn btn-primary btn-sm" onClick={()=>store.advanceStage(p.id)}>Продвинуть стадию →</button>}
               {p.status==='ACTIVE'&&<button className="btn btn-sm" style={{background:'var(--amber)',color:'#000',border:'none',borderRadius:6,padding:'4px 10px',fontSize:11,cursor:'pointer'}} onClick={()=>store.holdProject(p.id)}>⏸ Приостановить проект</button>}
               {p.status==='ON_HOLD'&&<button className="btn btn-sm" style={{background:'var(--green)',color:'#fff',border:'none',borderRadius:6,padding:'4px 10px',fontSize:11,cursor:'pointer'}} onClick={()=>store.resumeProject(p.id)}>▶ Возобновить проект</button>}
         {p.status==='ACTIVE'&&(p.project_type==='New Delivery'||p.project_type==='Old Delivery')&&<button className="btn btn-sm" style={{background:'var(--amber)',color:'#fff',border:'none'}} onClick={()=>setShowEarlyComplete(true)}>Досрочное завершение</button>}
@@ -4804,6 +5090,7 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
                   </div>
                 </div>
                 {(cStart||cEnd)&&<div className="pg-contract-bounds">📋 Контракт: {cStart?fmtD(cStart):'—'} — {cEnd?fmtD(cEnd):'—'}</div>}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginTop:8}}><div>{/* LEFT: Phase info */}
 
                 <div className="pg-phase-dates">
                   <div className="pg-phase-dates-head">
@@ -4817,6 +5104,8 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
                       <input type="date" value={ph.period_start||''} onChange={e=>{store.updatePhaseDates(p.id,ph.id,{period_start:e.target.value})}}/>
                       <label>Конец</label>
                       <input type="date" value={ph.period_end||''} onChange={e=>{store.updatePhaseDates(p.id,ph.id,{period_end:e.target.value})}}/>
+                      {ph.status!=='COMPLETED'&&<button title="Закрыть эту фазу как завершённую прошлым годом" style={{fontSize:8,padding:'2px 6px',borderRadius:4,background:'var(--amber)',color:'#000',border:'none',cursor:'pointer',marginLeft:4,whiteSpace:'nowrap'}} onClick={()=>{if(!confirm('Закрыть фазу «'+(ph.phase_name||ph.phase_code)+'» как завершённую прошлым годом?'))return;const s=ph.period_start||'2025-03-01';const e=ph.period_end||'2025-11-30';store.updatePhaseDates(p.id,ph.id,{period_start:s,period_end:e,actual_start:ph.actual_start||s,actual_end:ph.actual_end||e});store.setPhaseStatus(p.id,ph.id,'COMPLETED');}}>✓ 2025</button>}
+                      {ph.status==='COMPLETED'&&<button title="Переоткрыть фазу" style={{fontSize:8,padding:'2px 6px',borderRadius:4,background:'var(--surface2)',color:'var(--text)',border:'1px solid var(--border)',cursor:'pointer',marginLeft:4,whiteSpace:'nowrap'}} onClick={()=>{if(!confirm('Переоткрыть фазу «'+(ph.phase_name||ph.phase_code)+'»?'))return;store.setPhaseStatus(p.id,ph.id,'IN_PROGRESS');}}>↩ Открыть</button>}
                     </div>
                   </div>)}
                 </div>
@@ -4859,7 +5148,7 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
                   </React.Fragment>)}
                 </div>}
 
-                {stagesCur&&<div style={{fontSize:10,color:'var(--sky)',marginBottom:4}}>Этап: {stagesCur.stage_name} ({stagesDone}/{allStages.length})</div>}
+                {stagesCur&&<div style={{fontSize:10,color:'var(--sky)',marginBottom:4}}>Стадия: {stagesCur.stage_name} ({stagesDone}/{allStages.length})</div>}
                 <div style={{display:'flex',gap:3,marginBottom:6}}>
                   {allStages.map(st=><div key={st.id} title={st.stage_name+' ('+st.status+')'} style={{width:6,height:6,borderRadius:'50%',background:st.status==='COMPLETED'?'var(--accent)':st.status==='IN_PROGRESS'?'var(--green)':'var(--bg4)',border:'1px solid '+(st.status==='IN_PROGRESS'?'var(--green)':'var(--border)'),boxShadow:st.status==='IN_PROGRESS'?'0 0 4px rgba(34,197,94,.5)':'none'}}></div>)}
                 </div>
@@ -4875,7 +5164,7 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
 
                 <div style={{marginTop:8}}>
                   <details>
-                    <summary style={{fontSize:10,color:'var(--accent)',cursor:'pointer'}}>Документы и этапы подробно</summary>
+                    <summary style={{fontSize:10,color:'var(--accent)',cursor:'pointer'}}>Документы и стадии подробно</summary>
                     <div style={{marginTop:8}}>
                       {grp.phases.map(ph=>{
                         const docs=getPhaseDocsState(p,ph.phase_code);
@@ -4897,6 +5186,120 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
                     </div>
                   </details>
                 </div>
+</div>{/* END LEFT */}
+                <div style={{borderLeft:'1px solid var(--border)',paddingLeft:12,minWidth:0}}>{/* RIGHT: Tracks */}
+                  <div style={{fontSize:11,fontWeight:600,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span>Треки ({grpTracks.length})</span>
+                    <button className="btn btn-sm" style={{fontSize:9,padding:'2px 6px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:4,cursor:'pointer'}} onClick={e=>{e.stopPropagation();setAddTrackPhaseClass(grpTrackClasses[0]||'BPM');setShowTrack(true);}}>+ Трек</button>
+                  </div>
+                  {grpTracks.length===0&&<div style={{fontSize:10,color:'var(--text2)',fontStyle:'italic',padding:'8px 0'}}>Нет треков. Нажмите «+ Трек» для добавления.</div>}
+                  {grpTracks.map(t=>{
+                    const hb=p.hypothesisBoard||{goals:[],subjects:[]};
+                    const cl=p.cardLinks||[];
+                    const trkGoals=hb.goals.filter(g=>cl.some(l=>(l.from===g.id&&l.to===t.id)||(l.to===g.id&&l.from===t.id)));
+                    const trkInsights=(hb.subjects||[]).flatMap(s=>s.insights||[]).filter(ins=>(ins.linked_tracks||[]).includes(t.id)||cl.some(l=>(l.from===ins.id&&l.to===t.id)||(l.to===ins.id&&l.from===t.id)));
+                    const trkTasks=(p.tasks||[]).filter(tk=>tk.track_id===t.id||cl.some(l=>(l.from===tk.id&&l.to===t.id)||(l.to===tk.id&&l.from===t.id)));
+                    const stIcon=t.status==='COMPLETED'?'✅':t.status==='IN_PROGRESS'?'▶️':t.status==='CLOSED'?'🔒':'⏳';
+                    const stLabel=t.status==='COMPLETED'?'Завершён':t.status==='IN_PROGRESS'?'В работе':t.status==='CLOSED'?'Закрыт':'Не начат';
+                    const stColor=t.status==='COMPLETED'?'var(--green)':t.status==='IN_PROGRESS'?'var(--accent)':t.status==='CLOSED'?'var(--text2)':'var(--amber)';
+                    const allTrks=p.tracks||[];
+                    const deps=t.dependencies||[];
+                    const preds=deps.map(d=>{const pt=allTrks.find(x=>x.id===d.target_track_id);return pt?{...d,track:pt}:null;}).filter(Boolean);
+                    const succs=allTrks.filter(x=>(x.dependencies||[]).some(d=>d.target_track_id===t.id)).map(x=>({track:x,lag:(x.dependencies||[]).find(d=>d.target_track_id===t.id)?.lag_days||0}));
+                    /* Conflict detection */
+                    const conflicts=preds.filter(d=>{if(!t.start_date||!d.track.end_date)return false;const predEnd=new Date(d.track.end_date);predEnd.setDate(predEnd.getDate()+(d.lag_days||0));return new Date(t.start_date)<predEnd;});
+                    const actualDays=t.start_date&&t.end_date?Math.max(0,Math.ceil((new Date(t.end_date)-new Date(t.start_date))/(1000*60*60*24))):null;
+                    return <details key={t.id} style={{marginBottom:6}}>
+                      <summary style={{padding:'6px 8px',borderRadius:6,background:conflicts.length>0?'rgba(239,68,68,0.08)':'var(--bg1)',border:'1px solid '+(conflicts.length>0?'var(--red)':'var(--border)'),cursor:'pointer',listStyle:'none',display:'flex',alignItems:'center',gap:6}}>
+                        <span style={{fontSize:11,fontWeight:600,flex:'0 0 auto'}}>{stIcon} {t.track_code}</span>
+                        <span style={{fontSize:10,color:'var(--text2)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.track_name}</span>
+                        <span style={{fontSize:9,color:'var(--text2)',flex:'0 0 auto'}}>{actualDays!==null?actualDays+'д':t.norm_days?t.norm_days+'д':'—'}</span>
+                        {conflicts.length>0&&<span style={{fontSize:9,color:'var(--red)',flex:'0 0 auto'}} title="Конфликт дат">⚠️</span>}
+                        <span style={{fontSize:9,color:stColor,fontWeight:600,flex:'0 0 auto',padding:'1px 5px',borderRadius:4,background:stColor+'18'}}>{stLabel}</span>
+                      </summary>
+                      <div style={{padding:'8px 10px',margin:'2px 0 0',borderRadius:'0 0 6px 6px',background:'var(--bg1)',border:'1px solid var(--border)',borderTop:'none',fontSize:10}}>
+                        {/* Editable dates & days */}
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'4px 8px',marginBottom:8}}>
+                          <div><span style={{color:'var(--text2)',fontSize:9}}>Старт</span><br/><input type="date" defaultValue={t.start_date||''} onBlur={e=>{if(e.target.value!==t.start_date)store.updateTrackDates(p.id,t.id,{start_date:e.target.value})}} style={{fontSize:10,width:'100%',padding:'2px 4px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text1)'}}/></div>
+                          <div><span style={{color:'var(--text2)',fontSize:9}}>Конец</span><br/><input type="date" defaultValue={t.end_date||''} onBlur={e=>{if(e.target.value!==t.end_date)store.updateTrackDates(p.id,t.id,{end_date:e.target.value})}} style={{fontSize:10,width:'100%',padding:'2px 4px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text1)'}}/></div>
+                          <div><span style={{color:'var(--text2)',fontSize:9}}>Норм.дней</span><br/><input type="number" defaultValue={t.norm_days||''} min="1" max="999" onBlur={e=>{const v=parseInt(e.target.value);if(!isNaN(v)&&v!==t.norm_days)store.updateTrackDates(p.id,t.id,{norm_days:v})}} style={{fontSize:10,width:'100%',padding:'2px 4px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text1)'}}/></div>
+                        </div>
+                        {/* Status + meta */}
+                        <div style={{display:'flex',gap:8,marginBottom:6,alignItems:'center',flexWrap:'wrap'}}>
+                          <select value={t.status} onChange={e=>store.updateTrackStatus(p.id,t.id,e.target.value)} style={{fontSize:10,padding:'2px 4px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text1)'}}>
+                            <option value="NOT_STARTED">Не начат</option><option value="IN_PROGRESS">В работе</option><option value="COMPLETED">Завершён</option><option value="CLOSED">Закрыт</option>
+                          </select>
+                          <span style={{fontSize:9,color:'var(--text2)'}}>Класс: {t.track_class} · Домен: {t.domain||'—'}</span>
+                          {actualDays!==null&&<span style={{fontSize:9,color:'var(--accent)'}}>Факт: {actualDays} дн.</span>}
+                          <button style={{marginLeft:'auto',fontSize:9,color:'var(--red)',background:'none',border:'none',cursor:'pointer',padding:0}} onClick={()=>{if(confirm('Удалить трек '+t.track_code+'?'))store.deleteTrack(p.id,t.id)}}>🗑</button>
+                        </div>
+
+                        {/* Dependencies: Predecessors */}
+                        <div style={{marginBottom:6}}>
+                          <div style={{fontSize:9,fontWeight:600,color:'var(--text2)',marginBottom:3}}>Предшественники ({preds.length})</div>
+                          {preds.map(d=><div key={d.id} style={{display:'flex',alignItems:'center',gap:4,marginBottom:2,fontSize:9,padding:'2px 4px',borderRadius:4,background:conflicts.some(c=>c.id===d.id)?'rgba(239,68,68,0.12)':'var(--bg2)'}}>
+                            <span style={{fontWeight:600}}>{d.track.track_code}</span>
+                            <span style={{color:'var(--text2)'}}>{d.track.track_name}</span>
+                            {d.lag_days>0&&<span style={{color:'var(--amber)'}}>+{d.lag_days}д</span>}
+                            {d.track.end_date&&<span style={{color:'var(--text2)'}}>до {fmtD(d.track.end_date)}</span>}
+                            {conflicts.some(c=>c.id===d.id)&&<span style={{color:'var(--red)',fontWeight:700}}>⚠ конфликт!</span>}
+                            <button style={{marginLeft:'auto',color:'var(--red)',background:'none',border:'none',cursor:'pointer',fontSize:9,padding:0}} onClick={()=>store.removeTrackDep(p.id,t.id,d.id)}>×</button>
+                          </div>)}
+                          {/* Add predecessor */}
+                          <select style={{fontSize:9,marginTop:2,padding:'1px 3px',borderRadius:3,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text1)'}} value="" onChange={e=>{if(e.target.value)store.addTrackDep(p.id,t.id,{target_track_id:e.target.value,lag_days:0});e.target.value='';}}>
+                            <option value="">+ предшественник...</option>
+                            {allTrks.filter(x=>x.id!==t.id&&!deps.some(d=>d.target_track_id===x.id)).map(x=><option key={x.id} value={x.id}>{x.track_code} — {x.track_name}</option>)}
+                          </select>
+                        </div>
+
+                        {/* Successors (read-only) */}
+                        {succs.length>0&&<div style={{marginBottom:6}}>
+                          <div style={{fontSize:9,fontWeight:600,color:'var(--text2)',marginBottom:3}}>Последователи ({succs.length})</div>
+                          {succs.map(s=><div key={s.track.id} style={{fontSize:9,padding:'2px 4px',borderRadius:4,background:'var(--bg2)',marginBottom:2,display:'flex',gap:4}}>
+                            <span style={{fontWeight:600}}>{s.track.track_code}</span>
+                            <span style={{color:'var(--text2)'}}>{s.track.track_name}</span>
+                            {s.lag>0&&<span style={{color:'var(--amber)'}}>+{s.lag}д</span>}
+                          </div>)}
+                        </div>}
+
+                        {/* Conflicts summary */}
+                        {conflicts.length>0&&<div style={{padding:'4px 8px',marginBottom:6,borderRadius:4,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',fontSize:9,color:'var(--red)'}}>
+                          ⚠️ Конфликт дат: старт трека ({t.start_date?fmtD(t.start_date):'—'}) раньше конца предшественника ({conflicts.map(c=>c.track.track_code+' до '+fmtD(c.track.end_date)).join(', ')})
+                        </div>}
+
+                        {/* Goals */}
+                        {trkGoals.length>0&&<div style={{marginBottom:6}}>
+                          <div style={{fontWeight:600,color:'var(--accent)',marginBottom:3}}>🎯 Цели ({trkGoals.length})</div>
+                          {trkGoals.map(g=><div key={g.id} style={{padding:'3px 6px',marginBottom:2,borderRadius:4,background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.15)'}}>
+                            <div style={{fontWeight:500}}>{g.title||g.description||'Цель'}</div>
+                            {g.metrics&&<div style={{fontSize:9,color:'var(--text2)',marginTop:1}}>Метрика: {g.metrics}</div>}
+                          </div>)}
+                        </div>}
+
+                        {/* Insights */}
+                        {trkInsights.length>0&&<div style={{marginBottom:6}}>
+                          <div style={{fontWeight:600,color:'var(--violet)',marginBottom:3}}>💡 Инсайты ({trkInsights.length})</div>
+                          {trkInsights.map(ins=><div key={ins.id} style={{padding:'3px 6px',marginBottom:2,borderRadius:4,background:ins.insight_type==='PAIN'?'rgba(239,68,68,0.08)':'rgba(34,197,94,0.08)',border:'1px solid '+(ins.insight_type==='PAIN'?'rgba(239,68,68,0.15)':'rgba(34,197,94,0.15)')}}>
+                            <span style={{fontSize:9,fontWeight:700,color:ins.insight_type==='PAIN'?'var(--red)':'var(--green)'}}>{ins.insight_type}</span>{' '}
+                            <span>{ins.description||'Инсайт'}</span>
+                          </div>)}
+                        </div>}
+
+                        {/* Tasks */}
+                        {trkTasks.length>0&&<div style={{marginBottom:4}}>
+                          <div style={{fontWeight:600,color:'var(--sky)',marginBottom:3}}>📋 Задачи ({trkTasks.length})</div>
+                          {trkTasks.map(tk=><div key={tk.id} style={{padding:'3px 6px',marginBottom:2,borderRadius:4,background:'rgba(14,165,233,0.08)',border:'1px solid rgba(14,165,233,0.15)',display:'flex',alignItems:'center',gap:4}}>
+                            <span style={{fontSize:9,width:8,height:8,borderRadius:'50%',background:tk.status==='DONE'?'var(--green)':tk.status==='IN_PROGRESS'?'var(--sky)':'var(--border)',display:'inline-block',flexShrink:0}}></span>
+                            <span style={{flex:1}}>{tk.title||tk.description||'Задача'}</span>
+                            {tk.status&&<span style={{fontSize:8,color:'var(--text2)'}}>{tk.status}</span>}
+                          </div>)}
+                        </div>}
+
+                        {trkGoals.length===0&&trkInsights.length===0&&trkTasks.length===0&&<div style={{color:'var(--text2)',fontStyle:'italic',fontSize:9}}>Нет связанных сущностей. Привяжите через Issue Tree.</div>}
+                      </div>
+                    </details>;
+                  })}
+                </div></div>{/* END GRID */}
                 {/* Add milestone button per group */}
                 <div style={{marginTop:6,textAlign:'right'}}>
                   <button className="pg-add-ms-btn" onClick={()=>setMsForm({phase_id:grp.phases[grp.phases.length-1].id,name:'',description:'',target_date:'',is_enabler:false})}>+ Веха после {grp.group_name}</button>
@@ -4961,6 +5364,18 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
         <button className="btn btn-primary" onClick={()=>{store.updatePhaseDoc(p.id,editPhDoc.phaseCode,editPhDoc.key,{status:editPhDoc.status,url:editPhDoc.url,file_name:editPhDoc.file_name,notes:editPhDoc.notes});setEditPhDoc(null);}}>Сохранить</button>
       </div>
     </Modal>}
+
+      {/* === Track Add Modal (for phase-specific track adding) === */}
+      {showTrack&&<Modal onClose={()=>{setShowTrack(false);setAddTrackPhaseClass(null);}}>
+        <h2>Добавить трек{addTrackPhaseClass?' ('+addTrackPhaseClass+')':''}</h2>
+        {p.project_type==='New Delivery'?<div>
+          <div className="form-group"><label>Название трека (кастомный)</label><input value={tf} onChange={e=>setTf(e.target.value)} placeholder="Например: Аудит процессов Q1"/></div>
+          <div className="form-actions"><button className="btn btn-secondary" onClick={()=>{setShowTrack(false);setAddTrackPhaseClass(null);}}>Отмена</button><button className="btn btn-primary" onClick={()=>{if(tf.trim()){store.addTrack(p.id,{name:tf.trim()});setShowTrack(false);setTf('');setAddTrackPhaseClass(null);}}} disabled={!tf.trim()}>Добавить</button></div>
+        </div>:<div>
+          <div className="form-group"><label>Шаблон трека</label><select value={tf} onChange={e=>setTf(e.target.value)}><option value="">—</option>{store.data.trackTemplates.filter(tt=>!usedTrackIds.has(tt.id)&&(!addTrackPhaseClass||tt.track_class===addTrackPhaseClass)).map(tt=><option key={tt.id} value={tt.id}>{tt.code} — {tt.name} ({tt.track_class})</option>)}</select></div>
+          <div className="form-actions"><button className="btn btn-secondary" onClick={()=>{setShowTrack(false);setAddTrackPhaseClass(null);}}>Отмена</button><button className="btn btn-primary" onClick={()=>{if(tf){store.addTrack(p.id,tf);setShowTrack(false);setTf('');setAddTrackPhaseClass(null);}}}>Добавить</button></div>
+        </div>}
+      </Modal>}
 
       {(()=>{const phases=p.phases||[];const totalStages=phases.reduce((s,ph)=>s+(ph.stages||[]).length,0);const doneStages=phases.reduce((s,ph)=>s+(ph.stages||[]).filter(st=>st.status==='COMPLETED').length,0);const ipStages=phases.reduce((s,ph)=>s+(ph.stages||[]).filter(st=>st.status==='IN_PROGRESS').length,0);const pct=totalStages>0?Math.round((doneStages+ipStages*0.5)/totalStages*100):0;return <div className="dd-progress"><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><span style={{fontSize:13,fontWeight:600}}>Прогресс Double Diamond</span><span style={{fontSize:13,fontWeight:700,color:'var(--accent)'}}>{pct}%</span></div><div className="progress-bar" style={{height:10,marginTop:6}}><div className="progress-fill" style={{width:pct+'%',background:'linear-gradient(90deg,var(--accent),var(--emerald))'}}></div></div><div className="dd-progress-bar">{phases.map(ph=>{const st=ph.stages||[];return st.map(s=>{const sd=calcStageDays(s);return <div key={s.id} className={'dd-progress-seg '+(s.status==='COMPLETED'?'done':s.status==='IN_PROGRESS'?'ip':'ns')} title={ph.phase_name+' → '+s.stage_name+(sd?' ('+sd+' дн.)':'')}>{s.stage_name.substring(0,3)}{sd>0&&<span style={{fontSize:7,marginLeft:1}}>{sd}д</span>}</div>;});})}</div><div className="dd-phase-dur">{phases.map(ph=>{const d=calcPhaseDays(ph);return d>0?<span key={ph.id} className={'dd-phase-chip '+(ph.status==='COMPLETED'?'done':'ip')}>{ph.phase_name.split('(')[0].trim()}: <span className="chip-days">{d} дн.</span></span>:null;})}</div></div>;})()}
       {(()=>{
@@ -5038,325 +5453,6 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
           </div>}
         </div>;
       })()}
-    </div>}
-
-    {tab==='tracks'&&<div>
-      <div className="auto-sched-bar">
-        <button className="btn btn-primary btn-sm" onClick={()=>setShowTrack(true)}>+ Добавить трек</button>
-        <button className="btn btn-secondary btn-sm" onClick={()=>store.autoScheduleTracks(p.id)} title="Установить даты для треков без дат, на основе нормативного буфера и зависимостей">Авто-планирование</button>
-        <button className="btn btn-sm" style={{background:'transparent',border:'1px solid var(--border)',color:'var(--text2)',cursor:'pointer'}} onClick={()=>{if(confirm('Пересчитать даты ВСЕХ треков по нормативу? Текущие даты будут перезаписаны.'))store.forceScheduleTracks(p.id)}} title="Пересчитать даты всех треков принудительно">Пересчитать все</button>
-        <span className="as-info">Даты рассчитываются по нормативной модели буфера (33%) и зависимостям</span>
-      </div>
-      <div className="card"><table><thead><tr><th>Код</th><th>Трек</th><th>Класс</th><th>Дней</th><th>Начало</th><th>Конец</th><th>Статус</th><th>Цели</th><th>Инсайты</th><th>Задачи</th><th></th></tr></thead>
-      <tbody>{(p.tracks||[]).map(t=>{
-        const hb=p.hypothesisBoard||{goals:[],subjects:[]};
-        const cl=hb.cardLinks||[];
-        const trkInsights=[];
-        (hb.subjects||[]).forEach(s=>(s.insights||[]).forEach(ins=>{
-          const lt=[...(ins.linked_tracks||[])];
-          if(ins.linked_track_id&&!lt.some(x=>x.id===ins.linked_track_id))lt.push({id:ins.linked_track_id});
-          if(lt.some(x=>x.id===t.id))trkInsights.push({...ins,_subjName:s.name,_goalId:s.goal_id});
-        }));
-        const trkTasks=(p.tasks||[]).filter(tk=>tk.track_id===t.id);
-        /* Цели, связанные с треком через cardLinks */
-        const linkedGoalIds=new Set();
-        cl.forEach(l=>{if(l.from_id===t.id)linkedGoalIds.add(l.to_id);if(l.to_id===t.id)linkedGoalIds.add(l.from_id);});
-        const trkGoals=(hb.goals||[]).filter(g=>linkedGoalIds.has(g.id));
-        /* Задачи, связанные с треком через cardLinks (дополнительно к track_id) */
-        const linkedTaskIds=new Set();
-        cl.forEach(l=>{if(l.from_id===t.id)linkedTaskIds.add(l.to_id);if(l.to_id===t.id)linkedTaskIds.add(l.from_id);});
-        const clTasks=(p.tasks||[]).filter(tk=>linkedTaskIds.has(tk.id)&&tk.track_id!==t.id);
-        const allTrkTasks=[...trkTasks,...clTasks];
-        const isExp=expandedTrack===t.id;
-        return <React.Fragment key={t.id}>
-          <tr className={'trk-row'+(isExp?' trk-row-active':'')} onClick={()=>setExpandedTrack(isExp?null:t.id)}>
-            <td style={{fontWeight:600}}>{t.track_code}</td>
-            <td>{t.track_name}</td>
-            <td>{TCB(t.track_class)}</td>
-            <td>{(()=>{const norm=TRACK_NORM_DAYS[t.track_code];const dur=calcTrackDuration(t);return <div style={{display:'flex',alignItems:'center',gap:3}}>
-              <span className="trk-dur-badge">{dur}д</span>
-              {norm&&norm.paramLabel&&<input className="trk-param-input" type="number" min="1" value={t.track_param||norm.paramDefault||1} onClick={e=>e.stopPropagation()} onChange={e=>{e.stopPropagation();const v=Number(e.target.value)||1;const newDur=norm.calc(v);store.updateTrackDates(p.id,t.id,{track_param:v,norm_days:newDur});}} title={norm.paramLabel+': кол-во'}/>}
-            </div>;})()}</td>
-            <td style={{fontSize:11,color:'var(--text2)'}}>{t.start_date?<span>{t.start_date}{t._auto_scheduled&&<span className="trk-date-auto"> (авто)</span>}</span>:<span className="clickable" style={{color:'var(--accent)'}} onClick={e=>{e.stopPropagation();setEditingTrack(t)}}>+</span>}</td>
-            <td style={{fontSize:11,color:'var(--text2)'}}>{t.end_date?<span>{t.end_date}{t._auto_scheduled&&<span className="trk-date-auto"> (авто)</span>}</span>:'—'}</td>
-            <td className="clickable" onClick={e=>{e.stopPropagation();store.updateTrackStatus(p.id,t.id,nextStatus(t.status,TRACK_STATUSES))}} title="Нажмите для смены статуса">{SB(t.status)}</td>
-            <td style={{textAlign:'center'}}><span style={{background:'#10b981',color:'#fff',borderRadius:10,padding:'1px 7px',fontSize:11,fontWeight:600}}>{trkGoals.length}</span></td>
-            <td style={{textAlign:'center'}}><span style={{background:'var(--amber)',color:'#000',borderRadius:10,padding:'1px 7px',fontSize:11,fontWeight:600}}>{trkInsights.length}</span></td>
-            <td style={{textAlign:'center'}}><span style={{background:'var(--emerald)',color:'#fff',borderRadius:10,padding:'1px 7px',fontSize:11,fontWeight:600}}>{allTrkTasks.length}</span></td>
-            <td><button className="btn btn-sm" style={{color:'var(--red)',background:'transparent',border:'none',cursor:'pointer',fontSize:14}} onClick={e=>{e.stopPropagation();store.deleteTrack(p.id,t.id)}} title="Удалить трек">×</button></td>
-          </tr>
-          {isExp&&<tr><td colSpan="11" style={{padding:0,border:'none'}}>
-            <div className="trk-expand">
-              {(()=>{const norm=TRACK_NORM_DAYS[t.track_code];const dur=calcTrackDuration(t);return dur?<div style={{fontSize:11,color:'var(--text2)',marginBottom:6}}>Нормативная длительность: <strong style={{color:'var(--accent)'}}>{dur} дн.</strong>{norm&&norm.paramLabel?' ('+norm.paramLabel+': '+(t.track_param||norm.paramDefault||'?')+')':''}{t.start_date&&t.end_date?' | Факт: '+Math.max(1,Math.ceil((new Date(t.end_date)-new Date(t.start_date))/864e5))+' дн.':''}</div>:null;})()}
-              {(()=>{
-                  const allTracks=p.tracks||[];
-                  const predecessors=(t.dependencies||[]).map(d=>{const dt=allTracks.find(x=>x.id===d.target_track_id);return dt?{...dt,lag:d.lag_days||0}:null;}).filter(Boolean);
-                  const successors=allTracks.filter(ot=>ot.id!==t.id&&(ot.dependencies||[]).some(d=>d.target_track_id===t.id)).map(ot=>{const dep=(ot.dependencies||[]).find(d=>d.target_track_id===t.id);return {...ot,lag:dep?.lag_days||0};});
-                  return (predecessors.length>0||successors.length>0)?<div className="trk-deps-section">
-                    {predecessors.length>0&&<div>
-                      <div style={{fontSize:11,fontWeight:600,color:'var(--text2)'}}>Предшественники ({predecessors.length})</div>
-                      <div className="trk-dep-list">{predecessors.map(pr=><div key={pr.id} className="trk-dep-chip predecessor clickable" onClick={e=>{e.stopPropagation();setExpandedTrack(pr.id);}} title={'Перейти к '+pr.track_code}>
-                        <span className="dep-arrow-icon pred">←</span>
-                        <span className="tdc-code">{pr.track_code}</span>
-                        <span style={{fontSize:10,color:'var(--text2)'}}>{pr.track_name}</span>
-                        {pr.lag>0&&<span style={{fontSize:9,color:'var(--amber)'}}>+{pr.lag}д</span>}
-                        <span style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:pr.status==='COMPLETED'?'#dcfce7':pr.status==='IN_PROGRESS'?'#dbeafe':'var(--bg1)',color:pr.status==='COMPLETED'?'#166534':pr.status==='IN_PROGRESS'?'#1e40af':'var(--text2)'}}>{pr.status||'PENDING'}</span>
-                      </div>)}</div>
-                    </div>}
-                    {successors.length>0&&<div style={{marginTop:predecessors.length>0?8:0}}>
-                      <div style={{fontSize:11,fontWeight:600,color:'var(--text2)'}}>Последователи ({successors.length})</div>
-                      <div className="trk-dep-list">{successors.map(sc=><div key={sc.id} className="trk-dep-chip successor clickable" onClick={e=>{e.stopPropagation();setExpandedTrack(sc.id);}} title={'Перейти к '+sc.track_code}>
-                        <span className="dep-arrow-icon succ">→</span>
-                        <span className="tdc-code">{sc.track_code}</span>
-                        <span style={{fontSize:10,color:'var(--text2)'}}>{sc.track_name}</span>
-                        {sc.lag>0&&<span style={{fontSize:9,color:'var(--amber)'}}>+{sc.lag}д</span>}
-                        <span style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:sc.status==='COMPLETED'?'#dcfce7':sc.status==='IN_PROGRESS'?'#dbeafe':'var(--bg1)',color:sc.status==='COMPLETED'?'#166534':sc.status==='IN_PROGRESS'?'#1e40af':'var(--text2)'}}>{sc.status||'PENDING'}</span>
-                      </div>)}</div>
-                    </div>}
-                  </div>:null;
-                })()}
-              <div style={{display:'flex',gap:24,flexWrap:'wrap'}}>
-                {trkGoals.length>0&&<div style={{flex:1,minWidth:260}}>
-                  <h4>🎯 Цели ({trkGoals.length})</h4>
-                  <div className="trk-ins-list">{trkGoals.map(g=><div key={g.id} className="trk-ins-card" style={{borderLeft:'3px solid #10b981'}}>
-                    <div style={{fontWeight:600,color:'#10b981'}}>{g.title}</div>
-                    {g.description&&<div className="trk-ins-meta">{g.description}</div>}
-                  </div>)}</div>
-                </div>}
-                <div style={{flex:1,minWidth:260}}>
-                  <h4>💡 Инсайты ({trkInsights.length})</h4>
-                  {trkInsights.length===0?<div className="trk-empty">Нет инсайтов, привязанных к этому треку. Привязать можно в Issue Tree ниже.</div>
-                  :<div className="trk-ins-list">{trkInsights.map(ins=>{
-                    const goal=(hb.goals||[]).find(g=>g.id===ins._goalId);
-                    return <div key={ins.id} className="trk-ins-card">
-                      <div><span style={{fontWeight:600,color:ins.insight_type==='PAIN'?'var(--red)':ins.insight_type==='GAIN'?'var(--emerald)':'var(--amber)'}}>{ins.insight_type}</span> {ins.description}</div>
-                      <div className="trk-ins-meta">Цель: {goal?.title||'—'} · Субъект: {ins._subjName}</div>
-                    </div>})}</div>}
-                </div>
-                <div style={{flex:1,minWidth:260}}>
-                  <h4>✅ Задачи ({allTrkTasks.length})</h4>
-                  {allTrkTasks.length===0?<div className="trk-empty">Нет задач по этому треку. Привязать можно в Issue Tree ниже.</div>
-                  :<div className="trk-task-list">{allTrkTasks.map(tk=><div key={tk.id} className="trk-task-card">
-                    <div>
-                      <div className="trk-task-title">{tk.title}{tk.track_id!==t.id&&<span style={{fontSize:9,color:'var(--amber)',marginLeft:4,fontWeight:400}}>(связь)</span>}</div>
-                      <div className="trk-task-meta">{tk.assignee_name||'Без исполнителя'} · Приоритет: {tk.priority||'—'}</div>
-                    </div>
-                    <div>{SB(tk.status)}</div>
-                  </div>)}</div>}
-                </div>
-              </div>
-            </div>
-          </td></tr>}
-        </React.Fragment>})}</tbody></table>
-      {(p.tracks||[]).length===0&&<div className="empty">Нет треков</div>}</div>
-      {(p.tracks||[]).some(t=>t.start_date&&t.end_date)&&<GanttChart project={p} store={store} onEditTrack={t=>setEditingTrack(t)}/>}
-      {editingTrack&&<EditTrackModal track={(p.tracks||[]).find(t=>t.id===(editingTrack.id||editingTrack))||editingTrack} project={p} store={store} onClose={()=>setEditingTrack(null)}/>}
-      {showTrack&&<Modal onClose={()=>setShowTrack(false)}><h2>Добавить трек</h2>
-        {p.project_type==='New Delivery'?<div>
-          <div className="form-group"><label>Название трека (кастомный)</label><input value={tf} onChange={e=>setTf(e.target.value)} placeholder="Например: Аудит процессов Q1"/></div>
-          {(p.phases||[]).length>0&&<div className="form-group"><label>Период (привязка)</label><select value={ndTrkPeriod||''} onChange={e=>setNdTrkPeriod(e.target.value)}><option value="">— Без привязки —</option>{(p.phases||[]).map((ph,i)=><option key={i} value={i+1}>{ph.phase_name||'Период '+(i+1)}</option>)}</select></div>}
-          <div className="form-actions"><button className="btn btn-secondary" onClick={()=>setShowTrack(false)}>Отмена</button><button className="btn btn-primary" onClick={()=>{if(tf.trim()){store.addTrack(p.id,{name:tf.trim(),nd_period_idx:ndTrkPeriod?Number(ndTrkPeriod):null});setShowTrack(false);setTf('');setNdTrkPeriod('');}}} disabled={!tf.trim()}>Добавить</button></div>
-        </div>:<div>
-          <div className="form-group"><label>Шаблон трека</label><select value={tf} onChange={e=>setTf(e.target.value)}><option value="">—</option>{store.data.trackTemplates.filter(tt=>!usedTrackIds.has(tt.id)).map(tt=><option key={tt.id} value={tt.id}>{tt.code} — {tt.name} ({tt.track_class})</option>)}</select></div>
-          <div className="form-actions"><button className="btn btn-secondary" onClick={()=>setShowTrack(false)}>Отмена</button><button className="btn btn-primary" onClick={()=>{if(tf){store.addTrack(p.id,tf);setShowTrack(false);setTf('');}}}>Добавить</button></div>
-        </div>}
-      </Modal>}
-    </div>}
-
-    {tab==='competencies'&&<div>
-
-      {/* === Команда (moved from overview) === */}
-      <div className="card"><div className="card-title" style={{display:'flex',justifyContent:'space-between'}}>Команда <button className="btn btn-primary btn-sm" onClick={()=>setShowAssign(true)}>+ Назначить</button></div>
-        {(p.assignments||[]).length===0?<div className="empty">Нет назначений</div>:<table><thead><tr><th>Имя</th><th>Должность</th><th>Роль</th><th></th></tr></thead><tbody>{p.assignments.map((a,i)=><tr key={i}><td>{a.person_name}</td><td style={{color:'var(--text2)'}}>{a.person_position||'—'}</td><td>{a.role_code}</td><td><button className="btn btn-sm" style={{color:'var(--red)',background:'transparent',border:'none',cursor:'pointer',fontSize:14}} onClick={()=>store.removeAssignment(p.id,a.id)} title="Снять назначение">×</button></td></tr>)}</tbody></table>}
-      </div>
-      {openBlockers.length>0&&<div className="card"><div className="card-title">Блокеры</div>{openBlockers.map((b,i)=><div key={i} className="blocker-item" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><span style={{color:'var(--red)',fontWeight:600,fontSize:11}}>{b.severity}</span> {b.description}</div><button className="btn btn-sm btn-secondary" onClick={()=>store.resolveBlocker(p.id,b.id)}>Снять</button></div>)}</div>}
-      {showAssign&&<Modal onClose={()=>setShowAssign(false)}><h2>Назначить на проект</h2>
-        <div className="form-group"><label>Сотрудник</label><select value={af.person_id} onChange={e=>setAf(p=>({...p,person_id:e.target.value}))}><option value="">—</option>{store.data.persons.filter(pe=>!assignedIds.has(pe.id)).map(pe=><option key={pe.id} value={pe.id}>{pe.name} — {pe.position||''}</option>)}</select></div>
-        <div className="form-group"><label>Роль</label><select value={af.role_code} onChange={e=>setAf(p=>({...p,role_code:e.target.value}))}><option>PM</option><option>ANALYST</option><option>CONSULTANT</option><option>LEAD</option><option>EXPERT</option></select></div>
-        <div className="form-actions"><button className="btn btn-secondary" onClick={()=>setShowAssign(false)}>Отмена</button><button className="btn btn-primary" onClick={()=>{if(af.person_id){store.addAssignment(p.id,af.person_id,af.role_code);setShowAssign(false);}}}>Назначить</button></div>
-      </Modal>}
-
-      {(()=>{
-        const tracks=p.tracks||[];
-        const te=p.timeEntries||[];
-        const personIds=new Set(te.map(x=>x.person_id));
-        const projPersons=store.data.persons.filter(pe=>personIds.has(pe.id));
-        /* Hours per person on this project */
-        const hoursMap={};
-        te.forEach(x=>{hoursMap[x.person_id]=(hoursMap[x.person_id]||0)+(Number(x.hours)||0);});
-        const FULL_HOURS=20; /* 20ч = полная вовлечённость */
-        const hScale=(pid)=>Math.min(1,Math.sqrt((hoursMap[pid]||0)/FULL_HOURS));
-        const effLevel=(base,pid)=>Math.round(base*hScale(pid)*10)/10;
-
-        const bpmTracks=tracks.filter(t=>(t.track_class||'').toUpperCase()==='BPM');
-        const bpaTracks=tracks.filter(t=>(t.track_class||'').toUpperCase()==='BPA');
-        const bpiTracks=tracks.filter(t=>(t.track_class||'').toUpperCase()==='BPI');
-        const bpoTracks=tracks.filter(t=>(t.track_class||'').toUpperCase()==='BPO');
-
-        /* === Competency demand === */
-        const compDemand={};
-        tracks.forEach(t=>{
-          const map=TRACK_COMP_MAP[t.track_code]||{};
-          Object.entries(map).forEach(([k,w])=>{compDemand[k]=Math.max(compDemand[k]||0,w);});
-        });
-        /* Weighted supply: max effective competency among team */
-        const compSupply={};
-        const compSupplyDetail={};
-        projPersons.forEach(pe=>{
-          const c=pe.competencies||{};
-          const hrs=hoursMap[pe.id]||0;
-          const sc=hScale(pe.id);
-          COMPETENCY_MODEL.forEach(cm=>{
-            const raw=c[cm.key]||0;
-            if(raw>0){
-              const eff=Math.round(raw*sc*10)/10;
-              if(!compSupplyDetail[cm.key])compSupplyDetail[cm.key]=[];
-              compSupplyDetail[cm.key].push({name:pe.name,raw,eff,hours:hrs,scale:sc,id:pe.id});
-              compSupply[cm.key]=Math.max(compSupply[cm.key]||0,eff);
-            }
-          });
-        });
-
-        /* === BPM demand === */
-        const bpmDemand=bpmTracks.map(t=>t.track_code);
-        const bpmUnique=[...new Set(bpmDemand)];
-
-        return <div>
-          <div className="card" style={{marginBottom:12}}>
-            <div className="card-title">Обеспеченность компетенциями (взвешенная по часам)</div>
-            <div style={{fontSize:11,color:'var(--text2)',marginBottom:8}}>Эффективная обеспеченность = компетенция сотрудника * коэфф. вовлечённости (от часов на проекте). Полная вовлечённость = {FULL_HOURS}ч. Команда: {projPersons.length} чел.</div>
-            {Object.keys(compDemand).length===0?<div className="empty">Добавьте треки для расчёта потребности в компетенциях</div>:
-            <table className="comp-need-table">
-              <thead><tr><th>Компетенция</th><th>Потребность</th><th>Эфф. обесп.</th><th>Покрытие</th><th>Статус</th><th>Детали</th></tr></thead>
-              <tbody>{COMPETENCY_MODEL.filter(cm=>compDemand[cm.key]).sort((a,b)=>(compDemand[b.key]||0)-(compDemand[a.key]||0)).map(cm=>{
-                const need=compDemand[cm.key]||0;
-                const have=compSupply[cm.key]||0;
-                const pct=Math.min(100,Math.round(have/need*100));
-                const status=pct>=80?'ok':pct>=50?'partial':'deficit';
-                const details=compSupplyDetail[cm.key]||[];
-                return <tr key={cm.key}>
-                  <td style={{fontWeight:600}}>{cm.name}</td>
-                  <td style={{textAlign:'center'}}>{need}/7</td>
-                  <td><div className="comp-need-bar"><div className="cnb-fill" style={{width:pct+'%',background:status==='ok'?'var(--green)':status==='partial'?'var(--amber)':'var(--red)'}}/></div></td>
-                  <td style={{textAlign:'center'}}>{have.toFixed(1)}/7</td>
-                  <td style={{textAlign:'center'}}><span className={'comp-'+status}>{status==='ok'?'OK':status==='partial'?'Частично':'Дефицит'}</span></td>
-                  <td style={{fontSize:10,color:'var(--text2)'}}>{details.sort((a,b)=>b.eff-a.eff).slice(0,3).map(d=>d.name.split(' ')[0]+' '+d.raw+'*'+Math.round(d.scale*100)+'%='+d.eff.toFixed(1)).join(', ')}</td>
-                </tr>;
-              })}</tbody>
-            </table>}
-            {Object.keys(compDemand).length>0&&<div style={{marginTop:8,padding:8,background:'var(--bg1)',borderRadius:8,fontSize:10,color:'var(--text2)'}}>
-              Коэффициент = sqrt(часы/{FULL_HOURS}), макс. 100%. Пример: 1ч = 22%, 5ч = 50%, 10ч = 71%, 20ч+ = 100%.
-            </div>}
-          </div>
-
-          <div className="card" style={{marginBottom:12}}>
-            <div className="card-title">BPM-экспертиза (взвешенная по часам)</div>
-            <div style={{fontSize:11,color:'var(--text2)',marginBottom:8}}>Эффективный уровень BPM = базовый уровень * коэфф. вовлечённости. Показано сколько ещё часов нужно для полного покрытия.</div>
-            {bpmUnique.length===0?<div className="empty">На проекте нет BPM-треков</div>:
-            bpmUnique.map(code=>{
-              const tt=store.data.trackTemplates.find(x=>x.code===code);
-              const experts=projPersons.filter(pe=>(pe.bpm_expertise||{})[code]&&(pe.bpm_expertise||{})[code]>0)
-                .map(pe=>{const raw=(pe.bpm_expertise||{})[code];const hrs=hoursMap[pe.id]||0;const sc=hScale(pe.id);const eff=Math.round(raw*sc*10)/10;const hrsForFull=hrs>=FULL_HOURS?0:Math.ceil((FULL_HOURS-hrs));return{...pe,raw,eff,hours:hrs,scale:sc,hrsForFull};})
-                .sort((a,b)=>b.eff-a.eff);
-              const maxEff=experts.length>0?Math.max(...experts.map(e=>e.eff)):0;
-              const status=maxEff>=3?'ok':maxEff>=2?'partial':'deficit';
-              const countOnProj=bpmDemand.filter(c=>c===code).length;
-              /* Who can boost coverage most? */
-              const boostable=experts.filter(e=>e.raw>=3&&e.hrsForFull>0).sort((a,b)=>b.raw-a.raw);
-              return <div key={code} className="bpm-need-card">
-                <div className="bpm-need-header">
-                  <div><span className="bn-code">{code}</span> <span style={{fontSize:11,color:'var(--text2)'}}>{tt?tt.name:''}</span> <span style={{fontSize:10,color:'var(--text2)'}}>({countOnProj}x)</span></div>
-                  <span className="bn-status" style={{background:status==='ok'?'rgba(34,197,94,.15)':status==='partial'?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)',color:status==='ok'?'var(--green)':status==='partial'?'var(--amber)':'var(--red)'}}>{status==='ok'?'Обеспечен':status==='partial'?'Частично':'Дефицит'} (эфф. {maxEff.toFixed(1)})</span>
-                </div>
-                {experts.length===0?<div style={{fontSize:10,color:'var(--red)',fontStyle:'italic'}}>Никто из команды не владеет этим BPM</div>:
-                <div className="bpm-need-persons">
-                  {experts.map(e=><span key={e.id} className="bpm-need-chip" style={{borderColor:e.eff>=3?'var(--green)':e.eff>=2?'var(--amber)':'var(--sky)',background:e.eff>=3?'rgba(34,197,94,.08)':e.eff>=2?'rgba(245,158,11,.08)':'rgba(14,165,233,.08)'}}>
-                    {e.name.split(' ')[0]} <span style={{fontWeight:600}}>{BPM_EXP_LEVELS[e.raw]?.short||'?'}</span>
-                    <span style={{fontSize:9,color:'var(--text2)',marginLeft:2}}>{e.hours}ч={Math.round(e.scale*100)}%</span>
-                    <span style={{fontSize:9,fontWeight:700,marginLeft:2,color:e.eff>=3?'var(--green)':e.eff>=2?'var(--amber)':'var(--red)'}}>={e.eff.toFixed(1)}</span>
-                  </span>)}
-                </div>}
-                {status!=='ok'&&boostable.length>0&&<div style={{marginTop:4,fontSize:10,color:'var(--accent)',fontStyle:'italic'}}>
-                  Для покрытия: {boostable.slice(0,2).map(b=>b.name.split(' ')[0]+' +'+b.hrsForFull+'ч').join(' или ')} до полной вовлечённости
-                </div>}
-                {status==='deficit'&&boostable.length===0&&experts.length>0&&<div style={{marginTop:4,fontSize:10,color:'var(--red)',fontStyle:'italic'}}>
-                  Даже при полной вовлечённости макс. уровень {Math.max(...experts.map(e=>e.raw))} — нужен сотрудник с уровнем Профи+
-                </div>}
-              </div>;
-            })}
-          </div>
-
-          {(bpiTracks.length>0||bpaTracks.length>0||bpoTracks.length>0)&&<div className="card">
-            <div className="card-title">BPA / BPI / BPO покрытие (взвешенное)</div>
-            {[...bpaTracks,...bpiTracks,...bpoTracks].map(t=>{
-              const map=TRACK_COMP_MAP[t.track_code]||{};
-              const needed=Object.entries(map);
-              if(needed.length===0)return null;
-              return <div key={t.id} style={{marginBottom:8,padding:'6px 10px',background:'var(--bg3)',borderRadius:6}}>
-                <div style={{fontWeight:600,fontSize:12,marginBottom:4}}>{t.track_code} — {t.track_name}</div>
-                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                  {needed.sort((a,b)=>b[1]-a[1]).map(([k,w])=>{
-                    const cm=COMPETENCY_MODEL.find(c=>c.key===k);
-                    const have=compSupply[k]||0;
-                    const ok=have>=w;
-                    return <span key={k} style={{fontSize:10,padding:'2px 8px',borderRadius:10,border:'1px solid',borderColor:ok?'var(--green)':'var(--red)',color:ok?'var(--green)':'var(--red)',background:ok?'rgba(34,197,94,.06)':'rgba(239,68,68,.06)'}}>{cm?cm.short:k} {have.toFixed(1)}/{w} {ok?'OK':'!'}</span>;
-                  })}
-                </div>
-              </div>;
-            })}
-          </div>}
-        </div>;
-      })()}
-    </div>}
-
-    {tab==='admin_scale'&&<div>
-      {(()=>{const asc=calcAdminScale(p);return <div className="admin-scale">
-        <div className="as-overall">
-          <div className="as-pct">{asc.pct}%</div>
-          <div className="as-bar" style={{flex:1}}>
-            <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Административная шкала</div>
-            <div className="progress-bar" style={{height:8}}><div className="progress-fill" style={{width:asc.pct+'%',background:'linear-gradient(90deg,var(--accent),var(--emerald))'}}></div></div>
-            <div style={{fontSize:10,color:'var(--text2)',marginTop:3}}>Заполнено {asc.filledCount} из {asc.total} разделов</div>
-          </div>
-        </div>
-        {asc.sections.map(sec=><div key={sec.key} className={'as-section'+(sec.filled?' filled':'')}>
-          <div className="as-num">{sec.num}</div>
-          <div className="as-body">
-            <div className="as-title">{sec.title}</div>
-            <div className="as-hint">{sec.hint}</div>
-            {sec.autoFilled&&<div className="as-auto">✓ {sec.autoText}</div>}
-            {sec.key==='goal'?<div>
-              {(()=>{const goals=(p.hypothesisBoard?.goals||[]);return <div>
-                {goals.length>0?<div className="as-goal-cards">
-                  {goals.map(g=><div key={g.id} className="as-goal-card">
-                    <div className="as-gc-icon">{g.goal_type==='RESEARCH'?'R':g.goal_type==='PRODUCT'?'P':'B'}</div>
-                    <div className="as-gc-body">
-                      <div className="as-gc-title">{g.title}</div>
-                      {g.description&&<div className="as-gc-desc">{g.description}</div>}
-                      {(g.sub_goals||[]).length>0&&<div style={{fontSize:10,color:'var(--text2)',marginTop:2}}>{(g.sub_goals||[]).length} подцел{(g.sub_goals||[]).length===1?'ь':'ей'}</div>}
-                    </div>
-                    <div className="as-gc-type">{g.goal_type||'BUSINESS'}</div>
-                    <span className="as-gc-del" onClick={()=>{if(confirm('Удалить цель «'+g.title+'»?'))store.deleteGoal(p.id,g.id);}}>x</span>
-                  </div>)}
-                </div>:<div style={{fontSize:11,color:'var(--text2)',fontStyle:'italic',margin:'6px 0'}}>Нет целей. Добавьте ниже или из Issue Tree.</div>}
-                <div className="as-goal-add-inline">
-                  <input placeholder="Новая цель..." value={asGoalInline.title} onChange={e=>setAsGoalInline(x=>({...x,title:e.target.value,show:true}))} onKeyDown={e=>{if(e.key==='Enter'&&asGoalInline.title){store.addGoal(p.id,{title:asGoalInline.title,goal_type:asGoalInline.goal_type});setAsGoalInline({show:false,title:'',goal_type:'BUSINESS'});}}}/>
-                  <select value={asGoalInline.goal_type} onChange={e=>setAsGoalInline(x=>({...x,goal_type:e.target.value}))}><option value="BUSINESS">Business</option><option value="RESEARCH">Research</option><option value="PRODUCT">Product</option></select>
-                  <button className="btn btn-primary btn-sm" style={{padding:'3px 10px',fontSize:11}} onClick={()=>{if(asGoalInline.title){store.addGoal(p.id,{title:asGoalInline.title,goal_type:asGoalInline.goal_type});setAsGoalInline({show:false,title:'',goal_type:'BUSINESS'});}}}>+</button>
-                </div>
-                <div style={{fontSize:10,color:'var(--text2)',marginTop:4}}>Цели синхронизируются с Issue Tree. Добавляйте здесь или из вкладки Issue Tree.</div>
-              </div>;})()}
-            </div>:sec.key==='programs'?<div>
-              <div className="as-tracks">
-                {store.data.trackTemplates.map(tt=>{const isActive=(p.tracks||[]).some(t=>t.track_template_id===tt.id);const cls=tt.track_class?tt.track_class.toLowerCase():'';return <div key={tt.id} className={'as-track-chip'+(isActive?' active':'')+' '+cls} onClick={()=>{if(isActive){const trk=(p.tracks||[]).find(t=>t.track_template_id===tt.id);if(trk)store.deleteTrack(p.id,trk.id)}else{store.addTrack(p.id,tt.id)}}} title={tt.name+' ('+tt.track_class+')'}>{isActive?'✓ ':''}{tt.code}{isActive&&<span className="chip-x">×</span>}</div>;})}
-              </div>
-              <div style={{fontSize:10,color:'var(--text2)',marginTop:6}}>Нажмите на трек для добавления/удаления. Изменения отражаются во вкладке «Треки».</div>
-            </div>:<div className="as-notes">
-              <textarea value={sec.notes} onChange={e=>store.updateAdminScale(p.id,sec.key,e.target.value)} placeholder={'Заметки по разделу «'+sec.title+'»...'}/>
-            </div>}
-          </div>
-        </div>)}
-      </div>;})()}
     </div>}
 
     {tab==='tracks'&&<div className="it-container" style={{marginTop:16}} onClick={()=>{setItFocused(null);setItLinkMode(null);setSelGoal(null);setSelSubj(null);setSelInsight(null);}}>
@@ -5727,6 +5823,90 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
       </Modal>}
     </div>}
 
+    {tab==='competencies'&&<div>
+
+      {/* === Команда (moved from overview) === */}
+      <div className="card"><div className="card-title" style={{display:'flex',justifyContent:'space-between'}}>Команда <button className="btn btn-primary btn-sm" onClick={()=>setShowAssign(true)}>+ Назначить</button></div>
+        {(p.assignments||[]).length===0?<div className="empty">Нет назначений</div>:<table><thead><tr><th>Имя</th><th>Должность</th><th>Роль</th><th></th></tr></thead><tbody>{p.assignments.map((a,i)=><tr key={i}><td>{a.person_name}</td><td style={{color:'var(--text2)'}}>{a.person_position||'—'}</td><td>{a.role_code}</td><td><button className="btn btn-sm" style={{color:'var(--red)',background:'transparent',border:'none',cursor:'pointer',fontSize:14}} onClick={()=>store.removeAssignment(p.id,a.id)} title="Снять назначение">×</button></td></tr>)}</tbody></table>}
+      </div>
+      {openBlockers.length>0&&<div className="card"><div className="card-title">Блокеры</div>{openBlockers.map((b,i)=><div key={i} className="blocker-item" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><span style={{color:'var(--red)',fontWeight:600,fontSize:11}}>{b.severity}</span> {b.description}</div><button className="btn btn-sm btn-secondary" onClick={()=>store.resolveBlocker(p.id,b.id)}>Снять</button></div>)}</div>}
+      {showAssign&&<Modal onClose={()=>setShowAssign(false)}><h2>Назначить на проект</h2>
+        <div className="form-group"><label>Сотрудник</label><select value={af.person_id} onChange={e=>setAf(p=>({...p,person_id:e.target.value}))}><option value="">—</option>{store.data.persons.filter(pe=>!assignedIds.has(pe.id)).map(pe=><option key={pe.id} value={pe.id}>{pe.name} — {pe.position||''}</option>)}</select></div>
+        <div className="form-group"><label>Роль</label><select value={af.role_code} onChange={e=>setAf(p=>({...p,role_code:e.target.value}))}><option>PM</option><option>ANALYST</option><option>CONSULTANT</option><option>LEAD</option><option>EXPERT</option></select></div>
+        <div className="form-actions"><button className="btn btn-secondary" onClick={()=>setShowAssign(false)}>Отмена</button><button className="btn btn-primary" onClick={()=>{if(af.person_id){store.addAssignment(p.id,af.person_id,af.role_code);setShowAssign(false);}}}>Назначить</button></div>
+      </Modal>}
+
+      {/* === Компетенции проекта === */}
+      {(()=>{
+        const tracks=p.tracks||[];
+        const te=p.timeEntries||[];
+        const personIds=new Set(te.map(x=>x.person_id));
+        const projPersons=store.data.persons.filter(pe=>personIds.has(pe.id));
+        const hoursMap={};
+        te.forEach(x=>{hoursMap[x.person_id]=(hoursMap[x.person_id]||0)+(Number(x.hours)||0);});
+        const compData=projPersons.map(pe=>{
+          const comp=pe.competencies||{};
+          const bpmExp=pe.bpm_expertise||{};
+          const hrs=hoursMap[pe.id]||0;
+          return {person:pe,hours:hrs,comp,bpmExp};
+        });
+        const bpmTracks=tracks.filter(t=>(t.track_class||'').toUpperCase()==='BPM');
+        const bpaTracks=tracks.filter(t=>(t.track_class||'').toUpperCase()==='BPA');
+        const bpiTracks=tracks.filter(t=>(t.track_class||'').toUpperCase()==='BPI');
+        const bpoTracks=tracks.filter(t=>(t.track_class||'').toUpperCase()==='BPO');
+        return <div className="card" style={{marginTop:12}}>
+          <div className="card-title">Обеспеченность компетенциями</div>
+          {compData.length===0?<div className="empty">Нет участников с часами</div>:
+          <table><thead><tr><th>Имя</th><th>Часы</th>{COMPETENCY_MODEL.map(cm=><th key={cm.key} title={cm.name} style={{fontSize:9,maxWidth:40,textAlign:'center'}}>{cm.short}</th>)}</tr></thead>
+          <tbody>{compData.map(cd=><tr key={cd.person.id}><td>{cd.person.name}</td><td>{cd.hours}</td>{COMPETENCY_MODEL.map(cm=><td key={cm.key} style={{textAlign:'center',fontSize:10,color:(cd.comp[cm.key]||0)>0?'var(--accent)':'var(--text2)'}}>{cd.comp[cm.key]||'—'}</td>)}</tr>)}</tbody></table>}
+
+          {bpmTracks.length>0&&<div style={{marginTop:12}}><div style={{fontSize:12,fontWeight:600,marginBottom:6}}>BPM-экспертиза</div>
+            <table><thead><tr><th>Имя</th>{bpmTracks.map(t=><th key={t.id} style={{fontSize:9,maxWidth:50,textAlign:'center'}} title={t.track_name}>{t.track_code}</th>)}</tr></thead>
+            <tbody>{compData.map(cd=><tr key={cd.person.id}><td>{cd.person.name}</td>{bpmTracks.map(t=>{const lv=cd.bpmExp[t.track_code]||0;return <td key={t.id} style={{textAlign:'center',fontSize:10,color:lv>0?'var(--accent)':'var(--text2)'}}>{BPM_EXP_LEVELS[lv]?.short||'—'}</td>;})}</tr>)}</tbody></table>
+          </div>}
+
+          <div style={{marginTop:12,display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8}}>
+            <div style={{padding:6,borderRadius:6,background:'var(--bg1)',textAlign:'center'}}><div style={{fontSize:9,color:'var(--text2)'}}>BPM</div><div style={{fontSize:14,fontWeight:700,color:'var(--accent)'}}>{bpmTracks.length}</div></div>
+            <div style={{padding:6,borderRadius:6,background:'var(--bg1)',textAlign:'center'}}><div style={{fontSize:9,color:'var(--text2)'}}>BPA</div><div style={{fontSize:14,fontWeight:700,color:'var(--sky)'}}>{bpaTracks.length}</div></div>
+            <div style={{padding:6,borderRadius:6,background:'var(--bg1)',textAlign:'center'}}><div style={{fontSize:9,color:'var(--text2)'}}>BPI</div><div style={{fontSize:14,fontWeight:700,color:'var(--violet)'}}>{bpiTracks.length}</div></div>
+            <div style={{padding:6,borderRadius:6,background:'var(--bg1)',textAlign:'center'}}><div style={{fontSize:9,color:'var(--text2)'}}>BPO</div><div style={{fontSize:14,fontWeight:700,color:'var(--emerald)'}}>{bpoTracks.length}</div></div>
+          </div>
+        </div>;
+      })()}
+    </div>}
+
+    {tab==='admin_scale'&&<div>
+      {(()=>{
+        const sections=ADMIN_SCALE_SECTIONS.map(s=>{
+          const as=p.admin_scale||{};
+          return {...s,notes:as[s.key]||'',autoOk:s.autoCheck(p)};
+        });
+        const filled=sections.filter(s=>s.autoOk||s.notes.trim()).length;
+        return <div className="card">
+          <div className="card-title" style={{display:'flex',justifyContent:'space-between'}}>
+            <span>Административная шкала Адизеса</span>
+            <span style={{fontSize:11,color:'var(--accent)'}}>{filled}/{sections.length} заполнено</span>
+          </div>
+          <div style={{fontSize:11,color:'var(--text2)',marginBottom:12}}>Оцените полноту управленческой системы проекта по 9 элементам шкалы Адизеса</div>
+          {sections.map(sec=><div key={sec.key} style={{marginBottom:12,padding:10,borderRadius:8,background:'var(--bg1)',border:'1px solid var(--border)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+              <span style={{fontWeight:600,fontSize:12}}>{sec.num}. {sec.title}</span>
+              {sec.autoOk&&<span style={{fontSize:9,color:'var(--green)',background:'rgba(34,197,94,0.1)',padding:'2px 6px',borderRadius:4}}>✓ {sec.autoLabel(p)}</span>}
+            </div>
+            <div style={{fontSize:10,color:'var(--text2)',marginBottom:4}}>{sec.hint}</div>
+            {sec.key==='programs'?<div>
+              <div className="as-tracks">
+                {store.data.trackTemplates.map(tt=>{const isActive=(p.tracks||[]).some(t=>t.track_template_id===tt.id);const cls=tt.track_class?tt.track_class.toLowerCase():'';return <div key={tt.id} className={'as-track-chip'+(isActive?' active':'')+' '+cls} onClick={()=>{if(isActive){const trk=(p.tracks||[]).find(t=>t.track_template_id===tt.id);if(trk)store.deleteTrack(p.id,trk.id)}else{store.addTrack(p.id,tt.id)}}} title={tt.name+' ('+tt.track_class+')'}>{isActive?'✓ ':''}{tt.code}{isActive&&<span className="chip-x">×</span>}</div>;})}
+              </div>
+              <div style={{fontSize:10,color:'var(--text2)',marginTop:6}}>Нажмите на трек для добавления/удаления.</div>
+            </div>:<div className="as-notes">
+              <textarea value={sec.notes} onChange={e=>store.updateAdminScale(p.id,sec.key,e.target.value)} placeholder={'Заметки по разделу «'+sec.title+'»...'}/>
+            </div>}
+          </div>)}
+        </div>;
+      })()}
+    </div>}
+
     {tab==='financials'&&<div>
       {(()=>{
         const trDisp=Number(p.tax_rate)||0;const tr=_effTax(p.tax_rate);
@@ -5806,18 +5986,30 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
         </div>;
       })()}
       <div className="card" style={{marginBottom:12}}><div className="card-title" style={{display:'flex',justifyContent:'space-between'}}>Проектные накладные <span style={{fontSize:11,color:'var(--text2)',fontWeight:400}}>Итого: {fmt((p.overheads||[]).reduce((s,x)=>s+(Number(x.amount)||0),0))} ₽</span></div>
-        {(p.overheads||[]).length>0&&<table className="oh-table"><thead><tr><th>Название</th><th>Сумма</th><th>Дата</th><th>Заметка</th><th></th></tr></thead><tbody>{(p.overheads||[]).map(oh=><tr key={oh.id}>
-          <td><input defaultValue={oh.name} onBlur={e=>{const v=e.target.value.trim();if(v&&v!==oh.name)store.updateOverhead(p.id,oh.id,{name:v});}} style={{fontSize:11,padding:'2px 4px',width:'100%',border:'1px solid transparent',borderRadius:3,background:'transparent'}} onFocus={e=>{e.target.style.border='1px solid var(--accent)';e.target.style.background='var(--bg1)';}} onMouseOver={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid var(--border)';}} onMouseOut={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid transparent';}}/></td>
-          <td style={{fontWeight:600}}><input type="number" defaultValue={oh.amount} onBlur={e=>{const v=Number(e.target.value);if(v>=0&&v!==Number(oh.amount))store.updateOverhead(p.id,oh.id,{amount:v});}} style={{fontSize:11,fontWeight:600,padding:'2px 4px',width:80,border:'1px solid transparent',borderRadius:3,background:'transparent',textAlign:'right'}} onFocus={e=>{e.target.style.border='1px solid var(--accent)';e.target.style.background='var(--bg1)';}} onMouseOver={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid var(--border)';}} onMouseOut={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid transparent';}}/> ₽</td>
-          <td><input type="date" defaultValue={oh.date||''} onBlur={e=>{const v=e.target.value;if(v!==oh.date)store.updateOverhead(p.id,oh.id,{date:v});}} style={{fontSize:11,padding:'2px 4px',border:'1px solid transparent',borderRadius:3,background:'transparent',color:'var(--text2)'}} onFocus={e=>{e.target.style.border='1px solid var(--accent)';e.target.style.background='var(--bg1)';}} onMouseOver={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid var(--border)';}} onMouseOut={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid transparent';}}/></td>
-          <td><input defaultValue={oh.notes||''} placeholder="—" onBlur={e=>{const v=e.target.value.trim();if(v!==(oh.notes||''))store.updateOverhead(p.id,oh.id,{notes:v});}} style={{fontSize:11,padding:'2px 4px',width:'100%',border:'1px solid transparent',borderRadius:3,background:'transparent',color:'var(--text2)'}} onFocus={e=>{e.target.style.border='1px solid var(--accent)';e.target.style.background='var(--bg1)';}} onMouseOver={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid var(--border)';}} onMouseOut={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid transparent';}}/></td>
-          <td><span className="clickable" style={{color:'var(--red)',fontSize:12}} onClick={()=>{if(confirm('Удалить накладную «'+oh.name+'»?'))store.removeOverhead(p.id,oh.id);}}>×</span></td></tr>)}</tbody></table>}
-        <div className="oh-add">
-          <div className="form-group" style={{flex:1}}><label style={{fontSize:10}}>Название</label><input value={ohf.name} onChange={e=>setOhf(f=>({...f,name:e.target.value}))} placeholder="Аренда, подрядчик..." style={{fontSize:11,padding:'4px 8px'}}/></div>
-          <div className="form-group" style={{flex:0,minWidth:90}}><label style={{fontSize:10}}>Сумма (₽)</label><input type="number" value={ohf.amount} onChange={e=>setOhf(f=>({...f,amount:e.target.value}))} style={{fontSize:11,padding:'4px 8px',width:85}}/></div>
-          <div className="form-group" style={{flex:0,minWidth:110}}><label style={{fontSize:10}}>Дата</label><input type="date" value={ohf.date} onChange={e=>setOhf(f=>({...f,date:e.target.value}))} style={{fontSize:11,padding:'4px 8px'}}/></div>
-          <div className="form-group" style={{flex:1,minWidth:80}}><label style={{fontSize:10}}>Заметка</label><input value={ohf.notes||''} onChange={e=>setOhf(f=>({...f,notes:e.target.value}))} placeholder="Комментарий..." style={{fontSize:11,padding:'4px 8px'}}/></div>
-          <button className="btn btn-primary btn-sm" style={{marginBottom:12,padding:'4px 10px',fontSize:11}} onClick={()=>{if(ohf.name&&ohf.amount){store.addOverhead(p.id,ohf);setOhf({name:'',amount:'',date:'',notes:''});}}}>+</button>
+        {(p.overheads||[]).length>0&&<div style={{overflowX:'auto'}}><table className="oh-table"><thead><tr><th>Название</th><th>Сумма</th><th>Дата</th><th>Категория</th><th>Класс</th><th>Формат</th><th>Ответственный</th><th>CF</th><th style={{fontSize:9}}>Пр.г.</th><th>Заметка</th><th></th></tr></thead><tbody>{(p.overheads||[]).map(oh=><tr key={oh.id} style={{background:oh.prior_year?'rgba(251,191,36,0.06)':''}}>
+          <td><input defaultValue={oh.name} onBlur={e=>{const v=e.target.value.trim();if(v&&v!==oh.name)store.updateOverhead(p.id,oh.id,{name:v});}} style={{fontSize:11,padding:'2px 4px',width:'100%',border:'1px solid transparent',borderRadius:3,background:'transparent'}} onFocus={e=>{e.target.style.border='1px solid var(--accent)';e.target.style.background='var(--bg1)';}} onMouseOut={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid transparent';}}/></td>
+          <td style={{fontWeight:600}}><input type="number" defaultValue={oh.amount} onBlur={e=>{const v=Number(e.target.value);if(v>=0&&v!==Number(oh.amount))store.updateOverhead(p.id,oh.id,{amount:v});}} style={{fontSize:11,fontWeight:600,padding:'2px 4px',width:80,border:'1px solid transparent',borderRadius:3,background:'transparent',textAlign:'right'}} onFocus={e=>{e.target.style.border='1px solid var(--accent)';e.target.style.background='var(--bg1)';}} onMouseOut={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid transparent';}}/> ₽</td>
+          <td><input type="date" defaultValue={oh.date||''} onBlur={e=>{const v=e.target.value;if(v!==oh.date)store.updateOverhead(p.id,oh.id,{date:v});}} style={{fontSize:11,padding:'2px 4px',border:'1px solid transparent',borderRadius:3,background:'transparent',color:'var(--text2)'}} onFocus={e=>{e.target.style.border='1px solid var(--accent)';}} onMouseOut={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid transparent';}}/></td>
+          <td><select defaultValue={oh.category||'Прочее'} onChange={e=>store.updateOverhead(p.id,oh.id,{category:e.target.value})} style={{fontSize:10,padding:'1px 2px',border:'1px solid transparent',borderRadius:3,background:'transparent'}}>{['Подрядчики','IT решения','Промо','АХО','Логистика','Зарплата ФК','Найм','Авансированная прибыль','Прочее'].map(c=><option key={c}>{c}</option>)}</select></td>
+          <td><select defaultValue={oh.cls||'прочее'} onChange={e=>store.updateOverhead(p.id,oh.id,{cls:e.target.value})} style={{fontSize:10,padding:'1px 2px',border:'1px solid transparent',borderRadius:3,background:'transparent'}}>{['поддержка сайта','софт','билеты','для офиса','оборудование','дизайн','копирайтинг','монтаж','обработка данных','программирование','аналитика','найм','медиапартнерства','опросы','сбор данных','аренда помещения','прочее'].map(c=><option key={c}>{c}</option>)}</select></td>
+          <td><select defaultValue={oh.format||'счет'} onChange={e=>store.updateOverhead(p.id,oh.id,{format:e.target.value})} style={{fontSize:10,padding:'1px 2px',border:'1px solid transparent',borderRadius:3,background:'transparent'}}>{['счет','нал','карта ИП'].map(c=><option key={c}>{c}</option>)}</select></td>
+          <td><input defaultValue={oh.responsible||''} placeholder="—" onBlur={e=>{store.updateOverhead(p.id,oh.id,{responsible:e.target.value.trim()});}} style={{fontSize:10,padding:'2px 4px',width:80,border:'1px solid transparent',borderRadius:3,background:'transparent'}} onFocus={e=>{e.target.style.border='1px solid var(--accent)';}} onMouseOut={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid transparent';}}/></td>
+          <td><select defaultValue={oh.cf_type||'OCF'} onChange={e=>store.updateOverhead(p.id,oh.id,{cf_type:e.target.value})} style={{fontSize:9,padding:'1px 2px',border:'1px solid transparent',borderRadius:3,background:'transparent'}}>{['OCF','ICF','AHO'].map(c=><option key={c}>{c}</option>)}</select></td>
+          <td style={{textAlign:'center'}}><input type="checkbox" checked={!!oh.prior_year} onChange={e=>store.updateOverhead(p.id,oh.id,{prior_year:e.target.checked})} title="Расход прошлого года"/></td>
+          <td><input defaultValue={oh.notes||''} placeholder="—" onBlur={e=>{store.updateOverhead(p.id,oh.id,{notes:e.target.value.trim()});}} style={{fontSize:10,padding:'2px 4px',width:'100%',border:'1px solid transparent',borderRadius:3,background:'transparent',color:'var(--text2)'}} onFocus={e=>{e.target.style.border='1px solid var(--accent)';}} onMouseOut={e=>{if(document.activeElement!==e.target)e.target.style.border='1px solid transparent';}}/></td>
+          <td><span className="clickable" style={{color:'var(--red)',fontSize:12}} onClick={()=>{if(confirm('Удалить накладную «'+oh.name+'»?'))store.removeOverhead(p.id,oh.id);}}>×</span></td></tr>)}</tbody></table></div>}
+        <div className="oh-add" style={{display:'flex',flexWrap:'wrap',gap:4,alignItems:'flex-end'}}>
+          <div className="form-group" style={{flex:'1 1 120px'}}><label style={{fontSize:10}}>Название</label><input value={ohf.name} onChange={e=>setOhf(f=>({...f,name:e.target.value}))} placeholder="Аренда, подрядчик..." style={{fontSize:11,padding:'4px 8px'}}/></div>
+          <div className="form-group" style={{flex:'0 0 80px'}}><label style={{fontSize:10}}>Сумма (₽)</label><input type="number" value={ohf.amount} onChange={e=>setOhf(f=>({...f,amount:e.target.value}))} style={{fontSize:11,padding:'4px 8px',width:75}}/></div>
+          <div className="form-group" style={{flex:'0 0 110px'}}><label style={{fontSize:10}}>Дата</label><input type="date" value={ohf.date} onChange={e=>setOhf(f=>({...f,date:e.target.value}))} style={{fontSize:11,padding:'4px 8px'}}/></div>
+          <div className="form-group" style={{flex:'0 0 100px'}}><label style={{fontSize:10}}>Категория</label><select value={ohf.category} onChange={e=>setOhf(f=>({...f,category:e.target.value}))} style={{fontSize:10,padding:'4px 4px'}}>{['Подрядчики','IT решения','Промо','АХО','Логистика','Зарплата ФК','Найм','Авансированная прибыль','Прочее'].map(c=><option key={c}>{c}</option>)}</select></div>
+          <div className="form-group" style={{flex:'0 0 100px'}}><label style={{fontSize:10}}>Класс</label><select value={ohf.cls} onChange={e=>setOhf(f=>({...f,cls:e.target.value}))} style={{fontSize:10,padding:'4px 4px'}}>{['поддержка сайта','софт','билеты','для офиса','оборудование','дизайн','копирайтинг','монтаж','обработка данных','программирование','аналитика','найм','медиапартнерства','опросы','сбор данных','аренда помещения','прочее'].map(c=><option key={c}>{c}</option>)}</select></div>
+          <div className="form-group" style={{flex:'0 0 70px'}}><label style={{fontSize:10}}>Формат</label><select value={ohf.format} onChange={e=>setOhf(f=>({...f,format:e.target.value}))} style={{fontSize:10,padding:'4px 4px'}}>{['счет','нал','карта ИП'].map(c=><option key={c}>{c}</option>)}</select></div>
+          <div className="form-group" style={{flex:'0 0 80px'}}><label style={{fontSize:10}}>Ответств.</label><input value={ohf.responsible||''} onChange={e=>setOhf(f=>({...f,responsible:e.target.value}))} style={{fontSize:10,padding:'4px 8px',width:75}}/></div>
+          <div className="form-group" style={{flex:'0 0 55px'}}><label style={{fontSize:10}}>CF тип</label><select value={ohf.cf_type} onChange={e=>setOhf(f=>({...f,cf_type:e.target.value}))} style={{fontSize:10,padding:'4px 4px'}}>{['OCF','ICF','AHO'].map(c=><option key={c}>{c}</option>)}</select></div>
+          <div className="form-group" style={{flex:'0 0 30px'}}><label style={{fontSize:9}} title="Расход прошлого года">Пр.г.</label><input type="checkbox" checked={ohf.prior_year} onChange={e=>setOhf(f=>({...f,prior_year:e.target.checked}))}/></div>
+          <div className="form-group" style={{flex:'1 1 80px'}}><label style={{fontSize:10}}>Заметка</label><input value={ohf.notes||''} onChange={e=>setOhf(f=>({...f,notes:e.target.value}))} placeholder="..." style={{fontSize:11,padding:'4px 8px'}}/></div>
+          <button className="btn btn-primary btn-sm" style={{marginBottom:12,padding:'4px 10px',fontSize:11}} onClick={()=>{if(ohf.name&&ohf.amount){store.addOverhead(p.id,ohf);setOhf({name:'',amount:'',date:'',notes:'',category:'Прочее',cls:'прочее',format:'счет',responsible:'',cf_type:'OCF',prior_year:false});}}}>+</button>
         </div>
       </div>
       {/* Progress bar moved to CF sub-tab */}
@@ -5831,7 +6023,7 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
       {showPay&&<Modal onClose={()=>setShowPay(false)}><h2>Новый транш</h2>
         <div className="form-row"><div className="form-group"><label># транша</label><input type="number" value={pf.tranche_number} onChange={e=>setPf(p=>({...p,tranche_number:Number(e.target.value)}))}/></div><div className="form-group"><label>Сумма (₽)</label><input type="number" value={pf.amount} onChange={e=>setPf(p=>({...p,amount:e.target.value}))}/></div></div>
         <div className="form-row"><div className="form-group"><label>Дата (план)</label><input type="date" value={pf.planned_date} onChange={e=>setPf(p=>({...p,planned_date:e.target.value}))}/></div><div className="form-group"><label>Описание</label><input value={pf.description} onChange={e=>setPf(p=>({...p,description:e.target.value}))}/></div></div>
-        {(()=>{const phGrps=getPhaseGroups(p);return phGrps.length>0?<div className="form-group"><label>Привязка к этапу</label><select value={pf.phase_id||''} onChange={e=>setPf(x=>({...x,phase_id:e.target.value||null}))}><option value="">— Без привязки —</option>{phGrps.map(g=><option key={g.id} value={g.phases[0]?.id||g.id}>{g.group_name}</option>)}</select></div>:null;})()}
+        {(()=>{const phGrps=getPhaseGroups(p);return phGrps.length>0?<div className="form-group"><label>Привязка к стадии</label><select value={pf.phase_id||''} onChange={e=>setPf(x=>({...x,phase_id:e.target.value||null}))}><option value="">— Без привязки —</option>{phGrps.map(g=><option key={g.id} value={g.phases[0]?.id||g.id}>{g.group_name}</option>)}</select></div>:null;})()}
         <div className="form-actions"><button className="btn btn-secondary" onClick={()=>setShowPay(false)}>Отмена</button><button className="btn btn-primary" onClick={()=>{if(pf.amount&&pf.planned_date){store.addPayment(p.id,{...pf,amount:Number(pf.amount),phase_id:pf.phase_id||null});setShowPay(false);}}}>Добавить</button></div>
       </Modal>}
       {showTime&&<Modal onClose={()=>{setShowTime(false);setTeRows([]);}} style={{maxWidth:720}}><h2>Списать время</h2>
@@ -5922,9 +6114,9 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
       const GROUP_LABELS={finance:'Финансы',strategy:'Стратегия',marketing:'Маркетинг',commerce:'Коммерция',ops:'Операции',structure:'Структура',hr:'HR',culture:'Культура',it:'ИТ',procurement:'Закупки',logistics:'Логистика',sales:'Продажи',product:'Продукт',tech:'Технологии'};
       const gLabel=(g)=>GROUP_LABELS[g]||g;
 
-      const [showImport,setShowImport]=React.useState(false);
-      const [jsonText,setJsonText]=React.useState('');
-      const [dragOver,setDragOver]=React.useState(false);
+      const showImport=mmShowImport,setShowImport=setMmShowImport;
+      const jsonText=mmJsonText,setJsonText=setMmJsonText;
+      const dragOver=mmDragOver,setDragOver=setMmDragOver;
       const _extractJson=(raw)=>{
         /* helper: конвертировать linksData [[from,to,type],...] в [{from,to},...] */
         const _normLinks=(arr)=>{if(!Array.isArray(arr)||arr.length===0)return arr;if(Array.isArray(arr[0]))return arr.map(a=>({from:a[0],to:a[1]}));return arr;};
@@ -5947,17 +6139,17 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
       const handleFileInput=(e)=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(ev)=>{setJsonText(ev.target.result);};reader.readAsText(file);};
       const preventDef=(e)=>{e.preventDefault();e.stopPropagation();setDragOver(true);};
 
-      const [showAddNode,setShowAddNode]=React.useState(false);
-      const [nn,setNn]=React.useState({id:'',label:'',group:'finance',fact:'',target:'',tip:'',comment:''});
+      const showAddNode=mmShowAddNode,setShowAddNode=setMmShowAddNode;
+      const nn=mmNn,setNn=setMmNn;
       const doAddNode=()=>{if(!nn.id||!nn.label)return;store.addMetricsNode(projName,{...nn});setNn({id:'',label:'',group:'finance',fact:'',target:'',tip:'',comment:''});setShowAddNode(false);};
 
-      const [showAddLink,setShowAddLink]=React.useState(false);
-      const [nl,setNl]=React.useState({from:'',to:'',group:''});
+      const showAddLink=mmShowAddLink,setShowAddLink=setMmShowAddLink;
+      const nl=mmNl,setNl=setMmNl;
       const doAddLink=()=>{if(!nl.from||!nl.to)return;store.addMetricsLink(projName,{from:nl.from,to:nl.to});setNl({from:'',to:'',group:''});setShowAddLink(false);};
 
-      const [editNode,setEditNode]=React.useState(null);
-      const [hovNode,setHovNode]=React.useState(null);
-      const [hovPos,setHovPos]=React.useState({x:0,y:0});
+      const editNode=mmEditNode,setEditNode=setMmEditNode;
+      const hovNode=mmHovNode,setHovNode=setMmHovNode;
+      const hovPos=mmHovPos,setHovPos=setMmHovPos;
 
       /* SVG Layout: группы в колонках */
       const NODE_W=180,NODE_H=70,PAD_X=40,PAD_Y=20,TOP=60;
@@ -6888,9 +7080,17 @@ function ClientsView({store,goProject}){
   const [clDeals,setClDeals]=useState('');
   const [clSort,setClSort]=useState('revenue');
   const [clSegment,setClSegment]=useState('');
+  const [clientTab,setClientTab]=useState('agency');
   const clientAgg=useMemo(()=>{
+    const icfDeals=store.data.icf_deals||[];
     return store.data.clients.map(c=>{
       const projs=store.data.projects.filter(p=>p.client_id===c.id);
+      const strelaDeals=icfDeals.filter(d=>d.company_id===c.id);
+      const isAgency=projs.length>0;
+      const isStrela=strelaDeals.length>0;
+      const strelaDealCount=strelaDeals.length;
+      const strelaSum=strelaDeals.reduce((s,d)=>s+(Number(d.cost)||0),0);
+      const strelaProducts=[...new Set(strelaDeals.map(d=>d.product).filter(Boolean))];
       let totalRev=0,totalRevNet=0,totalCostProd=0,totalCostAll=0,totalOh=0,totalHours=0;
       projs.forEach(proj=>{
         const rev=Number(proj.total_contract_value)||Number(proj.fixed_price)||0;
@@ -6919,7 +7119,7 @@ function ClientsView({store,goProject}){
       const dirtyPct=totalRevNet>0?Math.round(dirtyProfit/totalRevNet*100):0;
       const cleanPct=totalRevNet>0?Math.round(cleanProfit/totalRevNet*100):0;
       const health=totalRev===0?'gray':dirtyPct>=80?'green':dirtyPct>=75?'yellow':'red';
-      return {...c,projs,totalRev,totalRevNet,totalCostProd,totalCostAll,totalOh,totalHours,dirtyProfit,cleanProfit,dirtyPct,cleanPct,health};
+      return {...c,projs,isAgency,isStrela,strelaDealCount,strelaSum,strelaProducts,totalRev,totalRevNet,totalCostProd,totalCostAll,totalOh,totalHours,dirtyProfit,cleanProfit,dirtyPct,cleanPct,health};
     }).sort((a,b)=>b.totalRev-a.totalRev);
   },[store.data]);
   const sel=selClient?clientAgg.find(c=>c.id===selClient):null;
@@ -7001,7 +7201,10 @@ function ClientsView({store,goProject}){
   const segments=[...new Set(clientAgg.map(c=>c.segment).filter(Boolean))].sort();
   const allDeals=(store.data.crm_deals||[]);
   const getOpenDeals=(cid)=>allDeals.filter(d=>d.client_id===cid&&!['won_past','re_won_past'].includes(d.stage));
-  const filtered=clientAgg.filter(c=>{
+  const agencyCount=clientAgg.filter(c=>c.isAgency).length;
+  const strelaCount=clientAgg.filter(c=>c.isStrela).length;
+  const tabFiltered=clientAgg.filter(c=>clientTab==='agency'?c.isAgency:clientTab==='strela'?c.isStrela:true);
+  const filtered=tabFiltered.filter(c=>{
     if(clSearch&&!c.name.toLowerCase().includes(clSearch.toLowerCase())&&!(c.contact_person||'').toLowerCase().includes(clSearch.toLowerCase())&&!(c.inn||'').includes(clSearch))return false;
     if(clCountry&&c.country!==clCountry)return false;
     if(clIndustry&&c.industry!==clIndustry)return false;
@@ -7022,6 +7225,11 @@ function ClientsView({store,goProject}){
   return <div>
     <h2 className="page-title">Клиенты</h2>
     <p style={{color:'var(--text2)',marginBottom:12,fontSize:13}}>Финансовая аналитика по клиентам • {clientAgg.length} клиентов • {clientAgg.reduce((s,c)=>s+c.projs.length,0)} проектов</p>
+    {/* Client type tabs */}
+    <div style={{display:'flex',gap:4,marginBottom:12}}>
+      <button className={clientTab==='agency'?'tab active':'tab'} onClick={()=>setClientTab('agency')} style={{fontSize:11,padding:'5px 14px',borderRadius:6,cursor:'pointer',border:clientTab==='agency'?'1px solid var(--accent)':'1px solid var(--border)',background:clientTab==='agency'?'var(--accent)':'var(--bg2)',color:clientTab==='agency'?'#fff':'var(--text)'}}>Агентства ({agencyCount})</button>
+      <button className={clientTab==='strela'?'tab active':'tab'} onClick={()=>setClientTab('strela')} style={{fontSize:11,padding:'5px 14px',borderRadius:6,cursor:'pointer',border:clientTab==='strela'?'1px solid var(--amber)':'1px solid var(--border)',background:clientTab==='strela'?'var(--amber)':'var(--bg2)',color:clientTab==='strela'?'#000':'var(--text)'}}>Стрела ({strelaCount})</button>
+    </div>
     <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap',alignItems:'center'}}>
       <input placeholder="Поиск: название, контакт, ИНН..." value={clSearch} onChange={e=>setClSearch(e.target.value)} style={{width:220,fontSize:11,padding:'5px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg1)'}}/>
       <select value={clCountry} onChange={e=>setClCountry(e.target.value)} style={{fontSize:11,padding:'5px 6px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg1)'}}>
@@ -7044,7 +7252,7 @@ function ClientsView({store,goProject}){
       </select>
       {hasFilters&&<button className="btn btn-sm" style={{fontSize:10}} onClick={()=>{setClSearch('');setClCountry('');setClIndustry('');setClHealth('');setClDeals('');setClSegment('');}}>✕ Сбросить</button>}
     </div>
-    <div style={{fontSize:11,color:'var(--text2)',marginBottom:10}}>Показано: <b>{filtered.length}</b> из {clientAgg.length}</div>
+    <div style={{fontSize:11,color:'var(--text2)',marginBottom:10}}>Показано: <b>{filtered.length}</b> из {tabFiltered.length}</div>
     {filtered.map(c=>{
       const od=getOpenDeals(c.id);const odSum=od.reduce((s,d)=>s+(Number(d.amount)||0),0);
       return <div key={c.id} className="client-view-card" onClick={()=>setSelClient(c.id)}>
@@ -7063,6 +7271,10 @@ function ClientsView({store,goProject}){
         <div className="cv-fin-item"><div className="cv-lbl">Часов</div><div className="cv-val" style={{color:'var(--accent)'}}>{c.totalHours>0?c.totalHours.toFixed(0):'—'}</div></div>
       </div>}
       {c.projs.length>0&&<div className="cv-proj-list">{c.projs.slice(0,5).map(pr=><div key={pr.id} className="cv-proj-row"><span>{pr.code} {pr.name}</span>{SB(pr.status)}</div>)}{c.projs.length>5&&<div style={{fontSize:10,color:'var(--text2)',marginTop:4}}>+ ещё {c.projs.length-5}</div>}</div>}
+      {clientTab==='strela'&&c.isStrela&&<div style={{marginTop:6,padding:'6px 10px',background:'rgba(234,179,8,.08)',borderRadius:6,fontSize:10}}>
+        <span style={{fontWeight:600,color:'var(--amber)'}}>Стрела:</span> {c.strelaDealCount} сдел{c.strelaDealCount===1?'ка':c.strelaDealCount<5?'ки':'ок'} • {fmt(c.strelaSum)}
+        {c.strelaProducts.length>0&&<span style={{color:'var(--text2)',marginLeft:6}}>({c.strelaProducts.join(', ')})</span>}
+      </div>}
     </div>;})}
     {filtered.length===0&&<div style={{textAlign:'center',padding:30,color:'var(--text2)'}}>Нет клиентов по заданным фильтрам</div>}
   </div>;
