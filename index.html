@@ -5,8 +5,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Portfolio Management System — Double Diamond</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
@@ -7022,8 +7022,8 @@ function FinanceMachineView({store,goProject}){
   const [kbForm,setKbForm]=useState(()=>{const n=new Date();return{name:'',amount_plan:'',amount_fact:'',month:n.getFullYear()+'-'+(n.getMonth()+1<10?'0':'')+(n.getMonth()+1),cf_type:'OCF',notes:''};});
   const [kbEditId,setKbEditId]=useState(null);
 
-  /* === DATA & COMPUTATION (wrapped in try-catch) === */
-  try {
+  /* === DATA & COMPUTATION === */
+  {
   const projects=store.data.projects.filter(p=>p.status!=='DRAFT');
   const persons=store.data.persons;
   const pnls=projects.map(p=>({...p,pnl:calcPnlHealth(p,persons)}));
@@ -9801,13 +9801,6 @@ function FinanceMachineView({store,goProject}){
   })()}
 
   </div>;
-  } catch(_fmError) {
-    console.error('FinanceMachineView error:', _fmError);
-    return <div style={{padding:20,margin:20,background:'#fff0f0',border:'2px solid red',borderRadius:8}}>
-      <h3 style={{color:'red',margin:'0 0 8px'}}>Ошибка в FinMashina</h3>
-      <pre style={{whiteSpace:'pre-wrap',fontSize:12,color:'#333'}}>{String(_fmError)}</pre>
-      <pre style={{whiteSpace:'pre-wrap',fontSize:10,color:'#888',marginTop:8}}>{_fmError&&_fmError.stack}</pre>
-    </div>;
   }
 }
 
