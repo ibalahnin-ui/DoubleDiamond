@@ -11386,16 +11386,11 @@ root.render(<App/>);
 window.__ppAPI={addRecs:null};
 </script>
 <script>
-/* AI Assistant Microservice Loader — loads standalone ai-assistant.html */
-(function(){
-  fetch('ai-assistant.html').then(function(r){return r.text();}).then(function(html){
-    var styleM=html.match(/<style>([\s\S]*?)<\/style>/);
-    if(styleM){var s=document.createElement('style');s.id='ai-assistant-css';s.textContent=styleM[1];document.head.appendChild(s);}
-    var scriptM=html.match(/<script>([\s\S]*?)<\/script>/);
-    if(scriptM){var sc=document.createElement('script');sc.id='ai-assistant-js';sc.textContent=scriptM[1];document.body.appendChild(sc);}
-    console.log('[AI Assistant] Microservice loaded');
-  }).catch(function(e){console.warn('[AI Assistant] Failed to load:',e);});
-})();
+/* Джеки — AI Assistant Microservice Loader */
+var _aiScript=document.createElement('script');
+_aiScript.src='ai-assistant.js';
+_aiScript.onerror=function(){console.warn('[Джеки] ai-assistant.js not found');};
+document.body.appendChild(_aiScript);
 </script>
 </body>
 </html>
