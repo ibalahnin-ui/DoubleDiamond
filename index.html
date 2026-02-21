@@ -1431,6 +1431,16 @@ function _sanitize(d){
   return result;
 }
 
+/* Helper: apply _deletedProjectIds / _deletedPersonIds protection after Supabase merge */
+function _applyDeletionProtection(merged,prev){
+  const delP=new Set([...(prev._deletedProjectIds||[]),...(merged._deletedProjectIds||[])]);
+  const delPers=new Set([...(prev._deletedPersonIds||[]),...(merged._deletedPersonIds||[])]);
+  if(delP.size>0)merged.projects=(merged.projects||[]).filter(p=>!delP.has(p.id));
+  if(delPers.size>0)merged.persons=(merged.persons||[]).filter(p=>!delPers.has(p.id));
+  merged._deletedProjectIds=[...delP];
+  merged._deletedPersonIds=[...delPers];
+  return merged;
+}
 function useStore(){
   const LS_KEY='pp_portfolio_data_v2';
   const [data,setData]=useState(()=>{
@@ -1802,16 +1812,7 @@ function useStore(){
             (remoteArr||[]).forEach(item=>{if(!map.has(item.id))map.set(item.id,item);});
             return Array.from(map.values());
           };
-          /* Helper: apply _deletedProjectIds / _deletedPersonIds protection after merge */
-          const _applyDeletionProtection=(merged,prev)=>{
-            const delP=new Set([...(prev._deletedProjectIds||[]),...(merged._deletedProjectIds||[])]);
-            const delPers=new Set([...(prev._deletedPersonIds||[]),...(merged._deletedPersonIds||[])]);
-            if(delP.size>0)merged.projects=(merged.projects||[]).filter(p=>!delP.has(p.id));
-            if(delPers.size>0)merged.persons=(merged.persons||[]).filter(p=>!delPers.has(p.id));
-            merged._deletedProjectIds=[...delP];
-            merged._deletedPersonIds=[...delPers];
-            return merged;
-          };
+          /* _applyDeletionProtection defined at useStore level, see above */
           if(sbScore>lsScore){
             _sbSkipSave.current=true;
             setData(prev=>_applyDeletionProtection({...sbData},prev));
