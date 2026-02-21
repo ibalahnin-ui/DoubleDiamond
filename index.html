@@ -3858,23 +3858,23 @@ function useStore(){
 }
 
 /* ===== FORMS ===== */
-/* SearchableClientSelect — agency-only clients with type-ahead */
-function SearchableClientSelect({clients,projects,value,onChange,style}){
+/* SearchableClientSelect — agency-only clients with type-ahead + create new */
+function SearchableClientSelect({clients,projects,value,onChange,onCreateNew,style}){
   const [q,setQ]=useState('');
   const [open,setOpen]=useState(false);
   const ref=useRef(null);
   /* agency clients = those that have at least 1 project */
-  const clientsWithProjects=useMemo(()=>{
-    const ids=new Set((projects||[]).map(p=>p.client_id).filter(Boolean));
-    return (clients||[]).filter(c=>ids.has(c.id));
-  },[clients,projects]);
-  /* filtered by search query */
+  const agencyIds=useMemo(()=>new Set((projects||[]).map(p=>p.client_id).filter(Boolean)),[projects]);
+  const clientsWithProjects=useMemo(()=>(clients||[]).filter(c=>agencyIds.has(c.id)),[clients,agencyIds]);
+  /* filtered by search query — agency first, then others */
   const filtered=useMemo(()=>{
-    if(!q.trim())return clientsWithProjects;
-    const lq=q.toLowerCase();
-    return clientsWithProjects.filter(c=>c.name.toLowerCase().includes(lq));
-  },[clientsWithProjects,q]);
-  const selected=clients.find(c=>c.id===value);
+    const lq=q.trim().toLowerCase();
+    if(!lq)return clientsWithProjects;
+    const agencyMatch=clientsWithProjects.filter(c=>c.name.toLowerCase().includes(lq));
+    const otherMatch=(clients||[]).filter(c=>!agencyIds.has(c.id)&&c.name.toLowerCase().includes(lq));
+    return [...agencyMatch,...otherMatch];
+  },[clientsWithProjects,clients,agencyIds,q]);
+  const selected=(clients||[]).find(c=>c.id===value);
   /* close on outside click */
   useEffect(()=>{
     const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
@@ -3885,14 +3885,15 @@ function SearchableClientSelect({clients,projects,value,onChange,style}){
       <span style={{color:selected?'var(--text)':'var(--text2)'}}>{selected?selected.name:'— Выберите клиента —'}</span>
       <span style={{fontSize:10,color:'var(--text2)',marginLeft:4}}>{open?'▲':'▼'}</span>
     </div>
-    {open&&<div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:999,background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,marginTop:2,boxShadow:'0 4px 12px rgba(0,0,0,.15)',maxHeight:220,display:'flex',flexDirection:'column'}}>
+    {open&&<div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:999,background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,marginTop:2,boxShadow:'0 4px 12px rgba(0,0,0,.15)',maxHeight:280,display:'flex',flexDirection:'column'}}>
       <div style={{padding:'4px 6px',borderBottom:'1px solid var(--border)'}}>
         <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Поиск клиента..." style={{width:'100%',border:'1px solid var(--border)',borderRadius:4,padding:'4px 8px',fontSize:12,background:'var(--bg1)'}} onClick={e=>e.stopPropagation()}/>
       </div>
       <div style={{overflowY:'auto',flex:1}}>
         <div onClick={()=>{onChange('');setOpen(false);setQ('');}} style={{padding:'6px 10px',cursor:'pointer',fontSize:12,color:'var(--text2)',borderBottom:'1px solid var(--border)'}}>— Не выбран —</div>
-        {filtered.length===0&&<div style={{padding:'8px 10px',fontSize:12,color:'var(--text2)',textAlign:'center'}}>Не найдено</div>}
-        {filtered.map(c=><div key={c.id} onClick={()=>{onChange(c.id);setOpen(false);setQ('');}} style={{padding:'6px 10px',cursor:'pointer',fontSize:12,background:c.id===value?'var(--accent-bg)':'transparent',fontWeight:c.id===value?600:400}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-bg)'} onMouseLeave={e=>e.currentTarget.style.background=c.id===value?'var(--accent-bg)':'transparent'}>{c.name}{c.country?' ('+c.country+')':''}</div>)}
+        {filtered.map(c=><div key={c.id} onClick={()=>{onChange(c.id);setOpen(false);setQ('');}} style={{padding:'6px 10px',cursor:'pointer',fontSize:12,background:c.id===value?'var(--accent-bg)':'transparent',fontWeight:c.id===value?600:400}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-bg)'} onMouseLeave={e=>e.currentTarget.style.background=c.id===value?'var(--accent-bg)':'transparent'}>{c.name}{c.country?' ('+c.country+')':''}{!agencyIds.has(c.id)?<span style={{fontSize:10,color:'var(--text2)',marginLeft:4}}>(новый)</span>:null}</div>)}
+        {filtered.length===0&&q.trim()&&<div style={{padding:'8px 10px',fontSize:12,color:'var(--text2)',textAlign:'center'}}>Не найдено</div>}
+        {onCreateNew&&<div onClick={()=>{onCreateNew(q.trim());setOpen(false);setQ('');}} style={{padding:'8px 10px',cursor:'pointer',fontSize:12,color:'var(--accent)',fontWeight:600,borderTop:'1px solid var(--border)',display:'flex',alignItems:'center',gap:4}}>+ Создать нового клиента{q.trim()?' «'+q.trim()+'»':''}</div>}
       </div>
     </div>}
   </div>;
@@ -3916,8 +3917,7 @@ function NewProjectModal({store,onClose,initialName,initialClientId}){
     <div className="form-group"><label>Тип</label><select value={f.project_type} onChange={e=>upd('project_type',e.target.value)}><option value="">— Тип —</option>{(store.data.projectTypes||[]).map(t=><option key={t} value={t}>{t}</option>)}</select></div></div>
     <div className="form-group"><label>Название *</label><input value={f.name} onChange={e=>upd('name',e.target.value)} placeholder="Оптимизация процессов..."/></div>
     <div className="form-group"><label>Клиент *</label>
-      <div style={{display:'flex',gap:8}}><SearchableClientSelect clients={store.data.clients} projects={store.data.projects} value={f.client_id} onChange={v=>upd('client_id',v)}/>
-      <button type="button" className="btn btn-secondary btn-sm" onClick={()=>setShowNewClient(!showNewClient)}>+ Новый</button></div>
+      <SearchableClientSelect clients={store.data.clients} projects={store.data.projects} value={f.client_id} onChange={v=>upd('client_id',v)} onCreateNew={(name)=>{setNc(p=>({...p,name:name||''}));setShowNewClient(true);}}/>
     </div>
     {showNewClient && <div className="card" style={{marginBottom:14}}><div className="form-row"><div className="form-group"><label>Название клиента</label><input value={nc.name} onChange={e=>setNc(p=>({...p,name:e.target.value}))}/></div><div className="form-group"><label>Отрасль</label><input value={nc.industry} onChange={e=>setNc(p=>({...p,industry:e.target.value}))}/></div></div><div className="form-row"><div className="form-group"><label>Страна</label><select value={nc.country} onChange={e=>setNc(p=>({...p,country:e.target.value}))}><option value="">— Страна —</option>{COUNTRIES.map(co=><option key={co} value={co}>{co}</option>)}</select></div><div className="form-group"/></div><button type="button" className="btn btn-success btn-sm" onClick={createClient}>Создать клиента</button></div>}
     <div className="form-row"><div className="form-group"><label>Стоимость контракта (₽)</label><input type="number" value={f.total_contract_value} onChange={e=>upd('total_contract_value',e.target.value)} placeholder={tranchesTotal>0?'Авто из траншей: '+fmt(tranchesTotal):''}/></div><div className="form-group"><label>Налоговый режим</label><div className="tax-select" style={{display:'flex',gap:4}}>{[{v:0,l:'0%'},{v:11,l:'11%'},{v:22,l:'22%'}].map(r=><div key={r.v} className={'tax-btn'+(Number(f.tax_rate)===r.v?' active':'')} onClick={()=>upd('tax_rate',r.v)} style={{cursor:'pointer'}}>{r.l}</div>)}</div></div></div>
@@ -4006,6 +4006,9 @@ function AddPersonModal({onClose,store}){
 function EditProjectModal({project:p,store,onClose}){
   const [f,setF]=useState({name:p.name,code:p.code,project_type:p.project_type||'',work_group:p.work_group||p._work_group||'',sales_group:p.sales_group||'',total_contract_value:p.project_type==='New Delivery'?(Number(p.nd_period_cost)||0)*(Number(p.nd_num_periods)||0):(p.total_contract_value||''),tax_rate:p.tax_rate||0,start_date:p.start_date||'',target_end_date:p.target_end_date||'',notes:p.notes||'',status:p.status,client_id:p.client_id,nd_payment_period:p.nd_payment_period||'quarterly',nd_period_cost:p.nd_period_cost||'',nd_period_start:p.nd_period_start||'',nd_period_end:p.nd_period_end||'',nd_has_success_fee:!!p.nd_has_success_fee,nd_success_fee:p.nd_success_fee||'',nd_num_periods:p.nd_num_periods||4,fk_monthly_cost:p.fk_monthly_cost||'',fk_planned_months:p.fk_planned_months||12,fk_start_date:p.fk_start_date||''});
   const upd=(k,v)=>setF(o=>({...o,[k]:v}));
+  const [showNewClient,setShowNewClient]=useState(false);
+  const [nc,setNc]=useState({name:'',industry:'',country:''});
+  const createClient=()=>{if(!nc.name)return;const c=store.addClient(nc);upd('client_id',c.id);setShowNewClient(false);setNc({name:'',industry:'',country:''});};
   const [newTranches,setNewTranches]=useState([]);
   const existingMax=Math.max(0,...(p.payments||[]).map(pm=>pm.tranche_number||0));
   const addTr=()=>setNewTranches(t=>[...t,{num:existingMax+t.length+1,amount:'',date:'',status:'PLANNED'}]);
@@ -4018,7 +4021,8 @@ function EditProjectModal({project:p,store,onClose}){
     <div className="form-row"><div className="form-group"><label>Код</label><input value={f.code} onChange={e=>upd('code',e.target.value)}/></div>
     <div className="form-group"><label>Статус</label><select value={f.status} onChange={e=>upd('status',e.target.value)}><option value="DRAFT">Черновик</option><option value="ACTIVE">Активный</option><option value="ON_HOLD">Приостановлен</option><option value="PAUSED">Пауза</option><option value="COMPLETED">Завершён</option></select></div></div>
     <div className="form-group"><label>Название</label><input value={f.name} onChange={e=>upd('name',e.target.value)}/></div>
-    <div className="form-group"><label>Клиент</label><SearchableClientSelect clients={store.data.clients} projects={store.data.projects} value={f.client_id} onChange={v=>upd('client_id',v)}/></div>
+    <div className="form-group"><label>Клиент</label><SearchableClientSelect clients={store.data.clients} projects={store.data.projects} value={f.client_id} onChange={v=>upd('client_id',v)} onCreateNew={(name)=>{setNc(p=>({...p,name:name||''}));setShowNewClient(true);}}/></div>
+    {showNewClient&&<div className="card" style={{marginBottom:14}}><div className="form-row"><div className="form-group"><label>Название клиента</label><input value={nc.name} onChange={e=>setNc(p=>({...p,name:e.target.value}))}/></div><div className="form-group"><label>Отрасль</label><input value={nc.industry} onChange={e=>setNc(p=>({...p,industry:e.target.value}))}/></div></div><div className="form-row"><div className="form-group"><label>Страна</label><select value={nc.country} onChange={e=>setNc(p=>({...p,country:e.target.value}))}><option value="">— Страна —</option>{COUNTRIES.map(co=><option key={co} value={co}>{co}</option>)}</select></div><div className="form-group"/></div><div style={{display:'flex',gap:8}}><button type="button" className="btn btn-success btn-sm" onClick={createClient}>Создать клиента</button><button type="button" className="btn btn-secondary btn-sm" onClick={()=>setShowNewClient(false)}>Отмена</button></div></div>}
     <div className="form-row"><div className="form-group"><label>Тип</label><select value={f.project_type} onChange={e=>upd('project_type',e.target.value)}><option value="">— Тип —</option>{(store.data.projectTypes||[]).map(t=><option key={t} value={t}>{t}</option>)}</select></div>
     <div className="form-group"><label>Рабочая группа</label><select value={f.work_group} onChange={e=>upd('work_group',e.target.value)}><option value="">— РГ —</option><option value="РГ1">РГ1</option><option value="РГ2">РГ2</option></select></div><div className="form-group"><label>Группа продаж</label><select value={f.sales_group} onChange={e=>upd('sales_group',e.target.value)}><option value="">= РГ</option><option value="РГ1">РГ1</option><option value="РГ2">РГ2</option></select></div></div>
     <div className="form-row"><div className="form-group"><label>Стоимость контракта (₽)</label><input type="number" value={f.total_contract_value} onChange={e=>upd('total_contract_value',e.target.value)}/></div><div className="form-group"><label>Налоговый режим</label><div className="tax-select" style={{display:'flex',gap:4}}>{[{v:0,l:'0%'},{v:11,l:'11%'},{v:22,l:'22%'}].map(r=><div key={r.v} className={'tax-btn'+(Number(f.tax_rate)===r.v?' active':'')} onClick={()=>upd('tax_rate',r.v)} style={{cursor:'pointer'}}>{r.l}</div>)}</div></div></div>
