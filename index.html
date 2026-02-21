@@ -1287,6 +1287,7 @@ const NAV=[
   {id:'clients',icon:'👥',label:'Клиенты'},
   {id:'chat',icon:'💬',label:'Чат'},
   {id:'settings',icon:'⚙️',label:'Настройки'},
+  {id:'test',icon:'🧪',label:'Тест'},
 ];
 const COUNTRIES=['Россия','Беларусь','Казахстан','Узбекистан','Кыргызстан','Таджикистан','Евросоюз','ОАЭ'];
 const getPersonDepts=p=>{if(p.departments&&p.departments.length>0)return p.departments;return p.department?[p.department]:[];};
@@ -11175,6 +11176,55 @@ function SupabaseConfigModal({onConnect,onSkip}){
   </div>;
 }
 
+function TestPage({store}) {
+  const d = store.data || {};
+  const projects = d.projects || [];
+  const clients = d.clients || [];
+  const persons = d.persons || [];
+  let wp=0, wo=0, wt=0, totalH=0;
+  projects.forEach(p => {
+    if ((p.payments||[]).length) wp++;
+    if ((p.project_overheads||[]).length) wo++;
+    if ((p.time_entries||[]).length) { wt++; p.time_entries.forEach(t => totalH += (t.hours||0)); }
+  });
+  return <div style={{padding:24}}>
+    <h2 style={{marginBottom:16}}>🧪 Тестовая страница</h2>
+    <p style={{color:'var(--text2)',marginBottom:24}}>Эта страница добавлена для проверки процесса обновления кода без потери данных.</p>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16,marginBottom:24}}>
+      <div style={{background:'var(--bg3)',borderRadius:12,padding:16}}>
+        <div style={{fontSize:28,fontWeight:800}}>{projects.length}</div>
+        <div style={{fontSize:12,color:'var(--text2)'}}>Проектов</div>
+      </div>
+      <div style={{background:'var(--bg3)',borderRadius:12,padding:16}}>
+        <div style={{fontSize:28,fontWeight:800}}>{clients.length}</div>
+        <div style={{fontSize:12,color:'var(--text2)'}}>Клиентов</div>
+      </div>
+      <div style={{background:'var(--bg3)',borderRadius:12,padding:16}}>
+        <div style={{fontSize:28,fontWeight:800}}>{persons.length}</div>
+        <div style={{fontSize:12,color:'var(--text2)'}}>Сотрудников</div>
+      </div>
+      <div style={{background:'var(--bg3)',borderRadius:12,padding:16}}>
+        <div style={{fontSize:28,fontWeight:800}}>{wp}</div>
+        <div style={{fontSize:12,color:'var(--text2)'}}>С траншами</div>
+      </div>
+      <div style={{background:'var(--bg3)',borderRadius:12,padding:16}}>
+        <div style={{fontSize:28,fontWeight:800}}>{wo}</div>
+        <div style={{fontSize:12,color:'var(--text2)'}}>С накладными</div>
+      </div>
+      <div style={{background:'var(--bg3)',borderRadius:12,padding:16}}>
+        <div style={{fontSize:28,fontWeight:800}}>{totalH.toFixed(0)}ч</div>
+        <div style={{fontSize:12,color:'var(--text2)'}}>Часов трекинга</div>
+      </div>
+    </div>
+    <div style={{background:'var(--bg3)',borderRadius:12,padding:16}}>
+      <h3 style={{marginBottom:8}}>Статус синхронизации</h3>
+      <p>Supabase: <strong>{store.sbStatus}</strong></p>
+      <p>CODE_VERSION: <strong>{typeof CODE_VERSION!=='undefined'?CODE_VERSION:'не определён'}</strong></p>
+      <p style={{marginTop:8,fontSize:12,color:'var(--text2)'}}>Если вы видите эту страницу и данные выше — обновление кода прошло успешно, данные на месте.</p>
+    </div>
+  </div>;
+}
+
 function App(){
   const store=useStore();
   useEffect(()=>{window.__ppAPI={addRecs:(recs)=>store.addRecommendationsBatch(recs),getData:()=>store.data};},[store]);
@@ -11227,6 +11277,7 @@ function App(){
       {page==='sales_marketing'&&<ErrorBoundary><SalesMarketingView store={store} goProject={goProject}/></ErrorBoundary>}
       {page==='chat'&&<ErrorBoundary><ChatView store={store}/></ErrorBoundary>}
       {page==='settings'&&<SettingsView store={store}/>}
+      {page==='test'&&<TestPage store={store}/>}
     </div>
     {store.toast&&<div className="toast">{store.toast}</div>}
     {showSbConfig&&<SupabaseConfigModal onConnect={()=>{store.reconnectSb();setShowSbConfig(false);}} onSkip={()=>setShowSbConfig(false)}/>}
