@@ -1776,6 +1776,13 @@ function useStore(){
           /* AUTO-BACKUP before any overwrite */
           try{const bk='pp_backup_'+new Date().toISOString().slice(0,19).replace(/:/g,'-');localStorage.setItem(bk,JSON.stringify(data));console.log('[Sync] Backup saved:',bk);}catch(e){}
 
+          /* Helper: merge arrays by id — union of both sources */
+          const _mergeById=(localArr,remoteArr)=>{
+            const map=new Map();
+            (localArr||[]).forEach(item=>map.set(item.id,item));
+            (remoteArr||[]).forEach(item=>{if(!map.has(item.id))map.set(item.id,item);});
+            return Array.from(map.values());
+          };
           if(sbScore>lsScore){
             _sbSkipSave.current=true;
             setData(prev=>({...sbData}));
@@ -1787,7 +1794,15 @@ function useStore(){
             setData(prev=>({...sbData}));
             setTimeout(()=>{_sbSkipSave.current=false;},500);
           } else {
-            console.log('[Sync/Master] Keeping localStorage data (score='+lsScore+'), will push to Supabase');
+            /* Keeping localStorage data, but ALWAYS merge shared arrays (chat, notifications) from Supabase */
+            _sbSkipSave.current=true;
+            setData(prev=>({...prev,
+              chat_messages:_mergeById(prev.chat_messages,sbData.chat_messages),
+              chat_channels:prev.chat_channels||(sbData.chat_channels||null),
+              notifications:_mergeById(prev.notifications,sbData.notifications)
+            }));
+            setTimeout(()=>{_sbSkipSave.current=false;},500);
+            console.log('[Sync/Master] Keeping localStorage data (score='+lsScore+'), merged chat/notifications from Supabase');
           }
           setSbStatus('online');
         } else if(error){
@@ -1867,7 +1882,9 @@ function useStore(){
           const remote=row.payload;
           const remoteMsgs=remote.chat_messages||[];
           const remoteNotifs=remote.notifications||[];
+          const remoteCh=remote.chat_channels||null;
           /* Merge chat_messages by id — add messages we don't have locally */
+          _sbSkipSave.current=true;
           setData(prev=>{
             const localMsgIds=new Set((prev.chat_messages||[]).map(m=>m.id));
             const newMsgs=remoteMsgs.filter(m=>!localMsgIds.has(m.id));
@@ -1875,20 +1892,24 @@ function useStore(){
             const newNotifs=remoteNotifs.filter(n=>!localNotifIds.has(n.id));
             /* Also sync read-status for notifications: if remote has read=true, update locally */
             const remoteReadMap={};remoteNotifs.forEach(n=>{if(n.read)remoteReadMap[n.id]=true;});
-            if(newMsgs.length===0&&newNotifs.length===0&&!Object.keys(remoteReadMap).length)return prev;
+            /* Sync chat_channels if missing locally */
+            const needCh=!prev.chat_channels&&remoteCh;
+            if(newMsgs.length===0&&newNotifs.length===0&&!Object.keys(remoteReadMap).length&&!needCh)return prev;
             const mergedNotifs=[...(prev.notifications||[]).map(n=>remoteReadMap[n.id]?{...n,read:true}:n),...newNotifs];
-            if(newMsgs.length===0&&newNotifs.length===0&&mergedNotifs.length===(prev.notifications||[]).length){
-              /* Check if any read-status actually changed */
+            if(newMsgs.length===0&&newNotifs.length===0&&!needCh&&mergedNotifs.length===(prev.notifications||[]).length){
               const changed=(prev.notifications||[]).some(n=>!n.read&&remoteReadMap[n.id]);
               if(!changed)return prev;
             }
             if(newMsgs.length>0)console.log('[Poll] +'+newMsgs.length+' new chat message(s)');
             if(newNotifs.length>0)console.log('[Poll] +'+newNotifs.length+' new notification(s)');
-            return {...prev,
+            const result={...prev,
               chat_messages:[...(prev.chat_messages||[]),...newMsgs],
               notifications:mergedNotifs
             };
+            if(needCh)result.chat_channels=remoteCh;
+            return result;
           });
+          setTimeout(()=>{_sbSkipSave.current=false;},300);
         }).catch(()=>{_pollBusy.current=false;});
     };
     _pollRef.current=setInterval(poll,1000);
@@ -11450,7 +11471,7 @@ function SalesMarketingView({store,goProject}){
 
 /* ===== CHAT VIEW ===== */
 function ChatView({store}){
-  const chatData=(()=>{const d=store.data;if(!d.chat_channels)return{channels:[{id:'general',name:'Общий',description:'Основной канал',type:'public',created_at:'',pinned:true},{id:'projects',name:'Проекты',description:'Обсуждение проектов',type:'public',created_at:'',pinned:true},{id:'random',name:'Разное',description:'Неформальное',type:'public',created_at:'',pinned:false}],messages:[],currentUser:{id:'me',name:'Илья',avatar:'И'}};return{channels:d.chat_channels,messages:d.chat_messages||[],currentUser:d.chat_current_user||{id:'me',name:'Илья',avatar:'И'}};})();
+  const chatData=(()=>{const d=store.data;const defaultCh=[{id:'general',name:'Общий',description:'Основной канал',type:'public',created_at:'',pinned:true},{id:'projects',name:'Проекты',description:'Обсуждение проектов',type:'public',created_at:'',pinned:true},{id:'random',name:'Разное',description:'Неформальное',type:'public',created_at:'',pinned:false}];const sess=(()=>{try{return JSON.parse(sessionStorage.getItem('pp_auth_session'));}catch(e){return null;}})();const curUser=sess?{id:sess.user_id,name:sess.name||sess.login,avatar:(sess.name||sess.login||'?')[0].toUpperCase()}:(d.chat_current_user||{id:'me',name:'Илья',avatar:'И'});return{channels:d.chat_channels||defaultCh,messages:d.chat_messages||[],currentUser:curUser};})();
 
   const [activeCh,setActiveCh]=useState(()=>localStorage.getItem('pp_chatCh')||'general');
   const selectCh=(id)=>{localStorage.setItem('pp_chatCh',id);setActiveCh(id);setThreadMsg(null);};
