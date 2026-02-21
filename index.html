@@ -729,7 +729,7 @@ tr.clickable:hover{background:var(--bg3)}
 </head>
 <body>
 <div id="root"></div>
-<script>window.SEED={"projects":[],"clients":[],"persons":[],"phaseTemplates":[{"id":"b17c2387-c3c9-417f-8d24-6132bcc9c0ed","code":"MINING","name":"Добыча (Mining)","track_class":"BPM","order_num":1,"description":null},{"id":"e29020b0-15fb-42ac-80e2-496789235617","code":"ASSEMBLING","name":"Сборка (Assembling)","track_class":"BPA","order_num":2,"description":null},{"id":"5ccd60c8-0936-4bd6-b097-d21438d4745c","code":"IMPLEMENTATION","name":"Внедрение (Implementation)","track_class":"BPI","order_num":3,"description":null},{"id":"aa09c47e-05df-43f3-8826-3e0a98e73f85","code":"ORGANIZATION","name":"Организация (Organization)","track_class":"BPO","order_num":4,"description":null}],"stageTemplates":[{"id":"43e3f9dc-b2ce-4ab0-b473-c0db09aee707","code":"INIT","name":"Инициация","order_num":1},{"id":"0cbc045f-0caf-463d-8120-262f8c8f3f82","code":"PLAN","name":"Планирование","order_num":2},{"id":"d235da38-e4cf-4b7c-8e53-09a58cd35a07","code":"EXEC","name":"Исполнение","order_num":3},{"id":"eaf5b765-e620-4887-83d3-a9f721ab74d6","code":"MON","name":"Мониторинг","order_num":4},{"id":"7bf2edd2-921f-47dc-a2eb-fc9d2c08681f","code":"CLOSE","name":"Закрытие","order_num":5}],"trackTemplates":[{"id":"a2db9985-3650-492a-b5ca-2c0a2517f268","code":"BPM-1","name":"Опросы и интерпретация","track_class":"BPM","domain":"Research","description":"Количественное исследование ЦА через структурированные анкеты и опросы. Выходы: анкеты, массивы данных, интерпретационные таблицы","management_goal":"Валидация гипотез через количественные данные","key_outputs":"Анкеты, массивы опросных данных, интерпретационные таблицы","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"cba34c91-7c8b-4727-bc89-fc8f291f9818","code":"BPM-2","name":"Интервью с сотрудниками (Tier-1 / Tier-2)","track_class":"BPM","domain":"Research","description":"Глубинные интервью с сотрудниками разных уровней. Tier-1: руководители/CEO, Tier-2: операционные сотрудники. Выявление орг. проблем и противоречий","management_goal":"Выявление внутренних проблем, бутылочных горлышек и точек роста","key_outputs":"Материалы интервью, карта орг. проблем, таблица противоречий, SCQA, SI-3","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"b402c21a-77b8-4bb4-9547-0b736d2f071c","code":"BPM-3","name":"Интервью с клиентами и неклиентами","track_class":"BPM","domain":"Research","description":"Глубинное изучение мотивов выбора/невыбора продуктов через интервью с клиентами, бывшими клиентами, клиентами конкурентов. Модели: MEDDPICC, Bain Pyramid, CJM","management_goal":"Выявление драйверов и барьеров покупки, процессов принятия решений","key_outputs":"Репорты интервью, таблица драйверов/барьеров, матрица CL vs NCL, SI4A-SI6","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c44c13e2-93a3-4ed2-888b-4693faae402f","code":"BPM-4","name":"Анализ БД и Формула прибыли","track_class":"BPM","domain":"Analytics","description":"Полный цикл анализа клиентских и транзакционных данных. Построение Формулы прибыли, выявление рычагов РВИД. RFM-сегментация, когортный анализ","management_goal":"Построение аналитической модели бизнеса и выявление рычагов роста","key_outputs":"Формула прибыли, набор графиков, интерпретация, SI-0, SI-1B, SI-7, SI-8, SI-9","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"7d70bba1-7785-48bb-9308-b595d040e39f","code":"BPM-5","name":"Тайный покупатель (Secret Shopping)","track_class":"BPM","domain":"Research","description":"Проверка качества работы через скрытые визиты/обращения. Три подвида: B2B (5a), B2C офлайн (5b), Digital (5c)","management_goal":"Объективная оценка качества обслуживания и процессов продаж","key_outputs":"Чек-листы, оценки, отчёт mystery shopping, рекомендации","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"d036386e-60de-4dd0-bbed-ea15c165f8c0","code":"BPM-6","name":"Кабинетный анализ (Desk Research)","track_class":"BPM","domain":"Research","description":"Вторичное исследование рынка, конкурентов и индустрии. Анализ открытых данных, публичных отчетов, сайтов конкурентов, отраслевых рейтингов","management_goal":"Формирование внешнего контекста для стратегических решений","key_outputs":"Аналитический отчет, конкурентные позиции, тренды рынка, гипотезы","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"a9d6b4d3-67bb-414f-9f1e-041b3371377f","code":"BPM-7","name":"Анализ рынка (Market-sizing)","track_class":"BPM","domain":"Analytics","description":"Оценка размера рынка PAM/TAM/SAM/SOM (7A) и анализ по продуктам/отраслям/регионам с Porter-like моделью (7B)","management_goal":"Определение потенциала роста и приоритетных сегментов","key_outputs":"Расчёт PAM/TAM/SAM/SOM, карта сегментов, Porter 5 forces, привлекательность сегментов","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c6bb9955-37a5-48bb-aaee-e2e39c7d0afd","code":"BPM-8","name":"Анализ бизнес-процессов","track_class":"BPM","domain":"Process","description":"Картирование и анализ операционных процессов. Методологии: SIPOC (уровень 1), IDEF0 (уровень 2), BPMN (уровень 3+). Выявление узких мест и возможностей оптимизации","management_goal":"Выявление неэффективностей и точек оптимизации в текущих процессах","key_outputs":"Диаграммы процессов (SIPOC/IDEF0/BPMN), узкие места, гипотезы оптимизации","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"5b8257bb-6b45-4a8e-b907-f2fa871e560c","code":"BPM-9","name":"Анализ компетенций сотрудников","track_class":"BPM","domain":"HR","description":"Оценка компетенций команды, выявление разрывов. Методы: PAEI, OCA. Анализ потребностей в обучении и развитии","management_goal":"Выявление управленческих проблем на уровне людей и компетенций","key_outputs":"Матрица компетенций, карта разрывов, рекомендации по развитию и найму","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"87fe48d6-73f0-4d15-9b45-5116abd2059c","code":"BPM-10","name":"Анализ CRM","track_class":"BPM","domain":"Sales","description":"Анализ системы управления отношениями с клиентами. Оценка качества данных в CRM, анализ воронки продаж, интеграция стратегического и операционного планирования","management_goal":"Оптимизация процессов продаж и работы с клиентами","key_outputs":"Рекомендации по CRM, оптимизация воронки, модели управления","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"4180d497-ef4a-4db9-8329-156de9a38f3f","code":"BPM-11","name":"Анализ ЦМД (целевая модель данных)","track_class":"BPM","domain":"Data","description":"Проектирование и анализ структуры данных. Определение ключевых сущностей, связей, справочников и правил нормализации. Выделен в отдельный процесс в 2026","management_goal":"Обеспечение готовности данных для аналитики и управления","key_outputs":"Схема ЦМД, рекомендации по настройке данных, готовность к аналитике","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c8b9b4fc-3074-42de-96b2-781b5c63764a","code":"BPA-1","name":"Сборка презентации (Slide Intent)","track_class":"BPA","domain":null,"parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"204bf2ac-ba00-48cc-bcb4-06157be26f54","code":"BPI-CHANGE","name":"Управление изменениями","track_class":"BPI","domain":"Change","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"047d9775-83d5-4c9e-aef6-a5e45148aebb","code":"BPI-COMM","name":"Коммуникации","track_class":"BPI","domain":"Communication","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"03382a57-df21-49a0-aab6-7a22c23a6815","code":"BPI-DATA","name":"Данные","track_class":"BPI","domain":"Data","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"6e3ac828-52ea-4a62-aeaf-0d55218cdcd6","code":"BPI-HR","name":"Люди и компетенции","track_class":"BPI","domain":"HR","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"dd71c292-5d7f-415a-b373-c73f0cf86304","code":"BPI-IT","name":"ИТ-системы","track_class":"BPI","domain":"IT","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"bd58582e-b3b3-41a8-8cc8-022bbae65c4f","code":"BPI-KPI","name":"Метрики и KPI","track_class":"BPI","domain":"Metrics","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"cca3394e-85df-4c4a-a22d-0eb89b9e3df4","code":"BPI-ORG","name":"Оргструктура","track_class":"BPI","domain":"Organization","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"b37f3898-24c8-4790-af99-9a40fa659523","code":"BPI-PILOT","name":"Пилотирование","track_class":"BPI","domain":"Pilot","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"17686adf-f1fb-4d51-b334-4a0d6140f4ac","code":"BPI-PROC","name":"Процессы","track_class":"BPI","domain":"Process","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"1d1e3022-b098-4a23-bc94-b99b7e4d9a1c","code":"BPI-RISK","name":"Риски","track_class":"BPI","domain":"Risk","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"1109689b-a4ce-45bb-9a7c-88b64e46b1a9","code":"BPI-TRAIN","name":"Обучение","track_class":"BPI","domain":"Training","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"35bcf228-ce22-4bc9-bedb-6ebfe2a419e9","code":"BPO-1","name":"Передача методологии","track_class":"BPO","domain":null,"parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1}],"fullKitComponents":[{"id":"c0407fe0-41d6-4493-95fe-91e5a4d92cc4","code":"FK-01","name":"Устав проекта","description":null,"is_mandatory":1},{"id":"dea637f1-be08-445f-8b22-d4d062d6d44d","code":"FK-02","name":"Карта стейкхолдеров","description":null,"is_mandatory":1},{"id":"6f06143a-b607-4e4f-a814-1c1e4c554420","code":"FK-03","name":"Периметр (scope)","description":null,"is_mandatory":1},{"id":"fc7a7ec4-73eb-4413-8e86-871dc5120d40","code":"FK-04","name":"Административная шкала","description":null,"is_mandatory":1},{"id":"74ac37bc-2031-48f4-aa3c-627eec36440d","code":"FK-05","name":"Дорожная карта","description":null,"is_mandatory":1},{"id":"a6a8ff57-379d-4c1c-b6c8-09a4dbe13306","code":"FK-06","name":"Бюджет и ресурсный план","description":null,"is_mandatory":1},{"id":"086dc0d2-d154-42e0-a42a-acdce35b706d","code":"FK-07","name":"Матрица рисков","description":null,"is_mandatory":0},{"id":"05aaa548-d7f3-4f42-93ae-9f34e1bac164","code":"FK-08","name":"Коммуникационный план","description":null,"is_mandatory":0},{"id":"b7bfe079-f9dd-49fa-921a-514929dba7d7","code":"FK-09","name":"Финансовая модель","description":null,"is_mandatory":1},{"id":"3ac7e1bd-5056-45bf-ab6f-260eb63531ad","code":"FK-10","name":"Гипотезы и ожидания","description":null,"is_mandatory":0}],"processRules":[{"id":"472c848d-6d02-4996-bf61-ee3e4fb6ea6d","code":"RULE-GATE-INIT-PLAN","name":"Gate INIT→PLAN","rule_type":"STAGE_GATE","scope":"STAGE","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"Все обязательные критерии должны быть выполнены","is_active":1},{"id":"c625beb5-1420-4cbb-a6fa-615583d6c3dd","code":"RULE-SLA-INIT","name":"SLA для INIT","rule_type":"SLA","scope":"STAGE","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"INIT ≤7 дней target, 10-12 yellow, >12 red/defect","is_active":1},{"id":"1ed7e240-5148-411c-969c-6b1a493bc249","code":"RULE-ADMIN-REVIEW","name":"Ревизия AdminScale","rule_type":"TRACK_SELECTION","scope":"PROJECT","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"При получении выводов BPM-5 пересмотреть AdminScale","is_active":1}],"knowledgeItems":[],"tags":[],"projectTypes":["Consulting","Old Delivery","New Delivery","Стратсессия","Марстрат","HR","Аудит","Ритейл Аудит","Экспресс-проект"],"recommendations":[{"id":"90d6e1ac-62c9-4011-a2fd-a1b6954f8679","category":"data","title":"Заполнение данных сотрудников","description":"23 сотрудника в системе не имеют заполненных зарплатных показателей и департаментов. Необходимо заполнить salary_monthly и department для корректного расчёта себестоимости проектов и ставки в час.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"d8d56dba-4946-4043-8d9f-a8b31ed54ec3","category":"finance","title":"Установка стоимостей контрактов для 27 проектов","description":"27 из 36 проектов (75%) не имеют установленной стоимости контракта (total_contract_value). Без этого невозможен расчёт маржинальности, P&L и контроль рентабельности портфеля.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"66d8c78e-e63b-42cc-a834-b8fc8711f1d9","category":"data","title":"Внедрение учёта рабочего времени","description":"В системе 0 записей timeEntries и 0 записей weekly_timesheets. При 36 активных проектах невозможно рассчитать фактическую себестоимость без данных о трудозатратах.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"b1321da3-ef7e-4b2b-b850-8833f9cedd5f","category":"finance","title":"Настройка налоговых режимов и накладных расходов","description":"Ни один проект не имеет установленного tax_rate и overheads. Для расчёта грязной и чистой рентабельности укажите режим (0%/11%/22%) и накладные расходы для 9 проектов с выручкой.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"b5875c5a-8598-4865-b0b5-895974969ba3","category":"process","title":"Настройка дат и зависимостей треков","description":"Треки проектов не имеют start_date/end_date — диаграмма Ганта и критическая цепь невозможны. Начните с 5 ключевых проектов и задайте даты по каждому BPM-треку.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"8bad418c-7f99-40d2-a46a-9c455c8a8971","category":"mgmt","title":"Привязка сотрудников к проектам","description":"23 сотрудника (10xC1, 3xC2, 4xC3, 3xC4, 3xC5) не распределены по проектам. Без назначений невозможен контроль загрузки, utilization rate и ёмкость триажа.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"8baa5c87-c3ba-4baf-90ca-de9af3ada774","category":"team","title":"Распределение сотрудников по департаментам","description":"Оргструктура содержит 7 департаментов, но сотрудники не привязаны. Это влияет на расчёт ФОТ Производства и ёмкость триажа. Распределите всех 23 сотрудников.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"}],"kb_budget":[],"overhead_registry":[]};</script>
+<script>window.SEED={"projects":[],"clients":[],"persons":[],"phaseTemplates":[{"id":"b17c2387-c3c9-417f-8d24-6132bcc9c0ed","code":"MINING","name":"Добыча (Mining)","track_class":"BPM","order_num":1,"description":null},{"id":"e29020b0-15fb-42ac-80e2-496789235617","code":"ASSEMBLING","name":"Сборка (Assembling)","track_class":"BPA","order_num":2,"description":null},{"id":"5ccd60c8-0936-4bd6-b097-d21438d4745c","code":"IMPLEMENTATION","name":"Внедрение (Implementation)","track_class":"BPI","order_num":3,"description":null},{"id":"aa09c47e-05df-43f3-8826-3e0a98e73f85","code":"ORGANIZATION","name":"Организация (Organization)","track_class":"BPO","order_num":4,"description":null}],"stageTemplates":[{"id":"43e3f9dc-b2ce-4ab0-b473-c0db09aee707","code":"INIT","name":"Инициация","order_num":1},{"id":"0cbc045f-0caf-463d-8120-262f8c8f3f82","code":"PLAN","name":"Планирование","order_num":2},{"id":"d235da38-e4cf-4b7c-8e53-09a58cd35a07","code":"EXEC","name":"Исполнение","order_num":3},{"id":"eaf5b765-e620-4887-83d3-a9f721ab74d6","code":"MON","name":"Мониторинг","order_num":4},{"id":"7bf2edd2-921f-47dc-a2eb-fc9d2c08681f","code":"CLOSE","name":"Закрытие","order_num":5}],"trackTemplates":[{"id":"a2db9985-3650-492a-b5ca-2c0a2517f268","code":"BPM-1","name":"Опросы и интерпретация","track_class":"BPM","domain":"Research","description":"Количественное исследование ЦА через структурированные анкеты и опросы. Выходы: анкеты, массивы данных, интерпретационные таблицы","management_goal":"Валидация гипотез через количественные данные","key_outputs":"Анкеты, массивы опросных данных, интерпретационные таблицы","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"cba34c91-7c8b-4727-bc89-fc8f291f9818","code":"BPM-2","name":"Интервью с сотрудниками (Tier-1 / Tier-2)","track_class":"BPM","domain":"Research","description":"Глубинные интервью с сотрудниками разных уровней. Tier-1: руководители/CEO, Tier-2: операционные сотрудники. Выявление орг. проблем и противоречий","management_goal":"Выявление внутренних проблем, бутылочных горлышек и точек роста","key_outputs":"Материалы интервью, карта орг. проблем, таблица противоречий, SCQA, SI-3","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"b402c21a-77b8-4bb4-9547-0b736d2f071c","code":"BPM-3","name":"Интервью с клиентами и неклиентами","track_class":"BPM","domain":"Research","description":"Глубинное изучение мотивов выбора/невыбора продуктов через интервью с клиентами, бывшими клиентами, клиентами конкурентов. Модели: MEDDPICC, Bain Pyramid, CJM","management_goal":"Выявление драйверов и барьеров покупки, процессов принятия решений","key_outputs":"Репорты интервью, таблица драйверов/барьеров, матрица CL vs NCL, SI4A-SI6","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c44c13e2-93a3-4ed2-888b-4693faae402f","code":"BPM-4","name":"Анализ БД и Формула прибыли","track_class":"BPM","domain":"Analytics","description":"Полный цикл анализа клиентских и транзакционных данных. Построение Формулы прибыли, выявление рычагов РВИД. RFM-сегментация, когортный анализ","management_goal":"Построение аналитической модели бизнеса и выявление рычагов роста","key_outputs":"Формула прибыли, набор графиков, интерпретация, SI-0, SI-1B, SI-7, SI-8, SI-9","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"7d70bba1-7785-48bb-9308-b595d040e39f","code":"BPM-5","name":"Тайный покупатель (Secret Shopping)","track_class":"BPM","domain":"Research","description":"Проверка качества работы через скрытые визиты/обращения. Три подвида: B2B (5a), B2C офлайн (5b), Digital (5c)","management_goal":"Объективная оценка качества обслуживания и процессов продаж","key_outputs":"Чек-листы, оценки, отчёт mystery shopping, рекомендации","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"d036386e-60de-4dd0-bbed-ea15c165f8c0","code":"BPM-6","name":"Кабинетный анализ (Desk Research)","track_class":"BPM","domain":"Research","description":"Вторичное исследование рынка, конкурентов и индустрии. Анализ открытых данных, публичных отчетов, сайтов конкурентов, отраслевых рейтингов","management_goal":"Формирование внешнего контекста для стратегических решений","key_outputs":"Аналитический отчет, конкурентные позиции, тренды рынка, гипотезы","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"a9d6b4d3-67bb-414f-9f1e-041b3371377f","code":"BPM-7","name":"Анализ рынка (Market-sizing)","track_class":"BPM","domain":"Analytics","description":"Оценка размера рынка PAM/TAM/SAM/SOM (7A) и анализ по продуктам/отраслям/регионам с Porter-like моделью (7B)","management_goal":"Определение потенциала роста и приоритетных сегментов","key_outputs":"Расчёт PAM/TAM/SAM/SOM, карта сегментов, Porter 5 forces, привлекательность сегментов","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c6bb9955-37a5-48bb-aaee-e2e39c7d0afd","code":"BPM-8","name":"Анализ бизнес-процессов","track_class":"BPM","domain":"Process","description":"Картирование и анализ операционных процессов. Методологии: SIPOC (уровень 1), IDEF0 (уровень 2), BPMN (уровень 3+). Выявление узких мест и возможностей оптимизации","management_goal":"Выявление неэффективностей и точек оптимизации в текущих процессах","key_outputs":"Диаграммы процессов (SIPOC/IDEF0/BPMN), узкие места, гипотезы оптимизации","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"5b8257bb-6b45-4a8e-b907-f2fa871e560c","code":"BPM-9","name":"Анализ компетенций сотрудников","track_class":"BPM","domain":"HR","description":"Оценка компетенций команды, выявление разрывов. Методы: PAEI, OCA. Анализ потребностей в обучении и развитии","management_goal":"Выявление управленческих проблем на уровне людей и компетенций","key_outputs":"Матрица компетенций, карта разрывов, рекомендации по развитию и найму","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"87fe48d6-73f0-4d15-9b45-5116abd2059c","code":"BPM-10","name":"Анализ CRM","track_class":"BPM","domain":"Sales","description":"Анализ системы управления отношениями с клиентами. Оценка качества данных в CRM, анализ воронки продаж, интеграция стратегического и операционного планирования","management_goal":"Оптимизация процессов продаж и работы с клиентами","key_outputs":"Рекомендации по CRM, оптимизация воронки, модели управления","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"4180d497-ef4a-4db9-8329-156de9a38f3f","code":"BPM-11","name":"Анализ ЦМД (целевая модель данных)","track_class":"BPM","domain":"Data","description":"Проектирование и анализ структуры данных. Определение ключевых сущностей, связей, справочников и правил нормализации. Выделен в отдельный процесс в 2026","management_goal":"Обеспечение готовности данных для аналитики и управления","key_outputs":"Схема ЦМД, рекомендации по настройке данных, готовность к аналитике","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c8b9b4fc-3074-42de-96b2-781b5c63764a","code":"BPA-1","name":"Сборка презентации (Slide Intent)","track_class":"BPA","domain":null,"parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"204bf2ac-ba00-48cc-bcb4-06157be26f54","code":"BPI-CHANGE","name":"Управление изменениями","track_class":"BPI","domain":"Change","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"047d9775-83d5-4c9e-aef6-a5e45148aebb","code":"BPI-COMM","name":"Коммуникации","track_class":"BPI","domain":"Communication","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"03382a57-df21-49a0-aab6-7a22c23a6815","code":"BPI-DATA","name":"Данные","track_class":"BPI","domain":"Data","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"6e3ac828-52ea-4a62-aeaf-0d55218cdcd6","code":"BPI-HR","name":"Люди и компетенции","track_class":"BPI","domain":"HR","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"dd71c292-5d7f-415a-b373-c73f0cf86304","code":"BPI-IT","name":"ИТ-системы","track_class":"BPI","domain":"IT","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"bd58582e-b3b3-41a8-8cc8-022bbae65c4f","code":"BPI-KPI","name":"Метрики и KPI","track_class":"BPI","domain":"Metrics","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"cca3394e-85df-4c4a-a22d-0eb89b9e3df4","code":"BPI-ORG","name":"Оргструктура","track_class":"BPI","domain":"Organization","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"b37f3898-24c8-4790-af99-9a40fa659523","code":"BPI-PILOT","name":"Пилотирование","track_class":"BPI","domain":"Pilot","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"17686adf-f1fb-4d51-b334-4a0d6140f4ac","code":"BPI-PROC","name":"Процессы","track_class":"BPI","domain":"Process","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"1d1e3022-b098-4a23-bc94-b99b7e4d9a1c","code":"BPI-RISK","name":"Риски","track_class":"BPI","domain":"Risk","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"1109689b-a4ce-45bb-9a7c-88b64e46b1a9","code":"BPI-TRAIN","name":"Обучение","track_class":"BPI","domain":"Training","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"35bcf228-ce22-4bc9-bedb-6ebfe2a419e9","code":"BPO-1","name":"Передача методологии","track_class":"BPO","domain":null,"parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1}],"fullKitComponents":[{"id":"c0407fe0-41d6-4493-95fe-91e5a4d92cc4","code":"FK-01","name":"Устав проекта","description":null,"is_mandatory":1},{"id":"dea637f1-be08-445f-8b22-d4d062d6d44d","code":"FK-02","name":"Карта стейкхолдеров","description":null,"is_mandatory":1},{"id":"6f06143a-b607-4e4f-a814-1c1e4c554420","code":"FK-03","name":"Периметр (scope)","description":null,"is_mandatory":1},{"id":"fc7a7ec4-73eb-4413-8e86-871dc5120d40","code":"FK-04","name":"Административная шкала","description":null,"is_mandatory":1},{"id":"74ac37bc-2031-48f4-aa3c-627eec36440d","code":"FK-05","name":"Дорожная карта","description":null,"is_mandatory":1},{"id":"a6a8ff57-379d-4c1c-b6c8-09a4dbe13306","code":"FK-06","name":"Бюджет и ресурсный план","description":null,"is_mandatory":1},{"id":"086dc0d2-d154-42e0-a42a-acdce35b706d","code":"FK-07","name":"Матрица рисков","description":null,"is_mandatory":0},{"id":"05aaa548-d7f3-4f42-93ae-9f34e1bac164","code":"FK-08","name":"Коммуникационный план","description":null,"is_mandatory":0},{"id":"b7bfe079-f9dd-49fa-921a-514929dba7d7","code":"FK-09","name":"Финансовая модель","description":null,"is_mandatory":1},{"id":"3ac7e1bd-5056-45bf-ab6f-260eb63531ad","code":"FK-10","name":"Гипотезы и ожидания","description":null,"is_mandatory":0}],"processRules":[{"id":"472c848d-6d02-4996-bf61-ee3e4fb6ea6d","code":"RULE-GATE-INIT-PLAN","name":"Gate INIT→PLAN","rule_type":"STAGE_GATE","scope":"STAGE","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"Все обязательные критерии должны быть выполнены","is_active":1},{"id":"c625beb5-1420-4cbb-a6fa-615583d6c3dd","code":"RULE-SLA-INIT","name":"SLA для INIT","rule_type":"SLA","scope":"STAGE","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"INIT ≤7 дней target, 10-12 yellow, >12 red/defect","is_active":1},{"id":"1ed7e240-5148-411c-969c-6b1a493bc249","code":"RULE-ADMIN-REVIEW","name":"Ревизия AdminScale","rule_type":"TRACK_SELECTION","scope":"PROJECT","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"При получении выводов BPM-5 пересмотреть AdminScale","is_active":1}],"knowledgeItems":[],"tags":[],"projectTypes":["Consulting","Old Delivery","New Delivery","Стратсессия","Марстрат","HR","Аудит","Ритейл Аудит","Экспресс-проект"],"recommendations":[{"id":"90d6e1ac-62c9-4011-a2fd-a1b6954f8679","category":"data","title":"Заполнение данных сотрудников","description":"23 сотрудника в системе не имеют заполненных зарплатных показателей и департаментов. Необходимо заполнить salary_monthly и department для корректного расчёта себестоимости проектов и ставки в час.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"d8d56dba-4946-4043-8d9f-a8b31ed54ec3","category":"finance","title":"Установка стоимостей контрактов для 27 проектов","description":"27 из 36 проектов (75%) не имеют установленной стоимости контракта (total_contract_value). Без этого невозможен расчёт маржинальности, P&L и контроль рентабельности портфеля.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"66d8c78e-e63b-42cc-a834-b8fc8711f1d9","category":"data","title":"Внедрение учёта рабочего времени","description":"В системе 0 записей timeEntries и 0 записей weekly_timesheets. При 36 активных проектах невозможно рассчитать фактическую себестоимость без данных о трудозатратах.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"b1321da3-ef7e-4b2b-b850-8833f9cedd5f","category":"finance","title":"Настройка налоговых режимов и накладных расходов","description":"Ни один проект не имеет установленного tax_rate и overheads. Для расчёта грязной и чистой рентабельности укажите режим (0%/11%/22%) и накладные расходы для 9 проектов с выручкой.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"b5875c5a-8598-4865-b0b5-895974969ba3","category":"process","title":"Настройка дат и зависимостей треков","description":"Треки проектов не имеют start_date/end_date — диаграмма Ганта и критическая цепь невозможны. Начните с 5 ключевых проектов и задайте даты по каждому BPM-треку.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"8bad418c-7f99-40d2-a46a-9c455c8a8971","category":"mgmt","title":"Привязка сотрудников к проектам","description":"23 сотрудника (10xC1, 3xC2, 4xC3, 3xC4, 3xC5) не распределены по проектам. Без назначений невозможен контроль загрузки, utilization rate и ёмкость триажа.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"8baa5c87-c3ba-4baf-90ca-de9af3ada774","category":"team","title":"Распределение сотрудников по департаментам","description":"Оргструктура содержит 7 департаментов, но сотрудники не привязаны. Это влияет на расчёт ФОТ Производства и ёмкость триажа. Распределите всех 23 сотрудников.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"}],"kb_budget":[],"overhead_registry":[],"users":[]};</script>
 <!-- SEED patches removed: data now lives only in Supabase -->
 <script>
 window.onerror=function(msg,url,line,col,err){
@@ -1390,24 +1390,24 @@ const getPersonMonthSalary=(p,ym)=>{const yr=+ym.slice(0,4),mo=+ym.slice(5,7),dm
 function Modal({children,onClose}){return <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose()}}><div className="modal">{children}</div></div>;}
 
 /* Helper: sanitize data — convert unexpected objects in leaf fields to strings */
-const _LEAF_FIELDS=new Set(['name','code','status','description','comment','notes','source','date','month','rg','category','cls','format','responsible','label','type','amount','amount_plan','amount_fact','cf_type','tax_rate','salary_monthly','grade','department','hire_date','fire_date','email','phone','planned_date','actual_date','expected_week_monday','payment_date','title','country','city','address','inn','contact_person','contact_email','contact_phone','payment_type','accrued_date','nd_period_start','nd_period_end','nd_payment_period']);
+const _LEAF_FIELDS=new Set(["name","code","status","description","comment","notes","source","date","month","rg","category","cls","format","responsible","label","type","amount","amount_plan","amount_fact","cf_type","tax_rate","salary_monthly","grade","department","hire_date","fire_date","email","phone","planned_date","actual_date","expected_week_monday","payment_date","title","country","city","address","inn","contact_person","contact_email","contact_phone","payment_type","accrued_date","nd_period_start","nd_period_end","nd_payment_period"]);
 function _sanitizeObj(obj){
-  if(!obj||typeof obj!=='object'||Array.isArray(obj))return obj;
+  if(!obj||typeof obj!=="object"||Array.isArray(obj))return obj;
   const out={};
   for(const k of Object.keys(obj)){
     const v=obj[k];
     if(v===null||v===undefined){out[k]=v;}
-    else if(Array.isArray(v)){out[k]=v.map(item=>typeof item==='object'&&item!==null&&!Array.isArray(item)?_sanitizeObj(item):item);}
-    else if(typeof v==='object'&&_LEAF_FIELDS.has(k)){out[k]=String(v.name||v.value||v.label||v.start||v.text||JSON.stringify(v));}
-    else if(typeof v==='object'){out[k]=_sanitizeObj(v);}
+    else if(Array.isArray(v)){out[k]=v.map(item=>typeof item==="object"&&item!==null&&!Array.isArray(item)?_sanitizeObj(item):item);}
+    else if(typeof v==="object"&&_LEAF_FIELDS.has(k)){out[k]=String(v.name||v.value||v.label||v.start||v.text||JSON.stringify(v));}
+    else if(typeof v==="object"){out[k]=_sanitizeObj(v);}
     else{out[k]=v;}
   }
   return out;
 }
 function _sanitize(d){
-  if(!d||typeof d!=='object')return d;
+  if(!d||typeof d!=="object")return d;
   const result={...d};
-  ['projects','clients','persons','overhead_registry','kb_budget','recommendations','knowledgeItems','crm_deals','icf_deals','staging_deals'].forEach(key=>{
+  ["projects","clients","persons","overhead_registry","kb_budget","recommendations","knowledgeItems","crm_deals","icf_deals","staging_deals"].forEach(key=>{
     if(Array.isArray(result[key])){result[key]=result[key].map(item=>_sanitizeObj(item));}
   });
   return result;
@@ -1736,7 +1736,7 @@ function useStore(){
     (s.projects||[]).forEach(pr=>{(pr.payments||[]).forEach(pm=>{
       delete pm.due_date;delete pm.paid_at;delete pm.project_id;
     });});
-    return {projects:s.projects||[],clients:s.clients||[],persons:s.persons||[],phaseTemplates:s.phaseTemplates||[],stageTemplates:s.stageTemplates||[],trackTemplates:s.trackTemplates||[],fullKitComponents:s.fullKitComponents||[],knowledgeItems:s.knowledgeItems||[],tags:s.tags||[],recommendations:s.recommendations||[],kb_budget:s.kb_budget||[],overhead_registry:s.overhead_registry||[],projectTypes:['Old Delivery','New Delivery','ФК']};
+    return {projects:s.projects||[],clients:s.clients||[],persons:s.persons||[],phaseTemplates:s.phaseTemplates||[],stageTemplates:s.stageTemplates||[],trackTemplates:s.trackTemplates||[],fullKitComponents:s.fullKitComponents||[],knowledgeItems:s.knowledgeItems||[],tags:s.tags||[],recommendations:s.recommendations||[],kb_budget:s.kb_budget||[],overhead_registry:s.overhead_registry||[],users:s.users||[],projectTypes:['Old Delivery','New Delivery','ФК']};
   });
   const [toast,setToast]=useState(null);
   const showToast=msg=>{setToast(msg);setTimeout(()=>setToast(null),2500);};
@@ -2115,12 +2115,30 @@ function useStore(){
       setData(d=>({...d,recommendations:[..._entries13,...(d.recommendations||[])]}));
       console.log('[Migration Rule 13] Added 12 development recommendations to Knowledge kanban');
     }
-    /* Rule 14: Clear ALL overhead_registry entries (stale / incorrect data) */
+    /* Rule 15: Create default user accounts if users[] is empty */
+    if(!(data.users||[]).length){
+      const _hp=async(pwd)=>{const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pwd));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');};
+      (async()=>{
+        const adminHash=await _hp('070303');
+        const userHash=await _hp('111111');
+        const persons=data.persons||[];
+        const _findP=(surname)=>persons.find(p=>(p.name||'').includes(surname));
+        const pTokaeva=_findP('Токаева');
+        const pKhudovekov=_findP('Худовеков');
+        const pKartveli=_findP('Картвелишвили');
+        const defaultUsers=[
+          {id:'__ADMIN__',login:'ibalahnin',password_hash:adminHash,name:'Илья Балахнин',person_id:null,role:'admin',is_active:true,created_at:'2026-02-21',last_login:null},
+          {id:'__USER_NT__',login:'ntokaeva',password_hash:userHash,name:'Наталья Токаева',person_id:pTokaeva?pTokaeva.id:null,role:'user',is_active:true,created_at:'2026-02-21',last_login:null},
+          {id:'__USER_SK__',login:'skhudovekov',password_hash:userHash,name:'Сергей Худовеков',person_id:pKhudovekov?pKhudovekov.id:null,role:'user',is_active:true,created_at:'2026-02-21',last_login:null},
+          {id:'__USER_GK__',login:'gkartveli',password_hash:userHash,name:'Георгий Картвелишвили',person_id:pKartveli?pKartveli.id:null,role:'user',is_active:true,created_at:'2026-02-21',last_login:null}
+        ];
+        setData(d=>({...d,users:defaultUsers}));
+        console.log('[Migration Rule 15] Created default user accounts: ibalahnin (admin), ntokaeva, skhudovekov, gkartveli');
+      })();
+    }
+    /* Rule 14: DISABLED auto-clear — now manual only via clearOverheadRegistry() */
     if((data.overhead_registry||[]).length>0){
-      console.log('[Migration Rule 14] Clearing '+data.overhead_registry.length+' stale overhead_registry entries');
-      setData(d=>({...d,overhead_registry:[]}));
-      /* Also clear synced_oh_id references in project overheads since registry entries are gone */
-      setData(d=>({...d,projects:d.projects.map(p=>({...p,overheads:(p.overheads||[]).map(oh=>oh.synced_oh_id?{...oh,synced_oh_id:null}:oh)}))}));
+      console.log('[Migration Rule 14] overhead_registry has '+data.overhead_registry.length+' entries (auto-clear DISABLED, use manual button if needed)');
     }
   },[]);
 
@@ -2480,14 +2498,50 @@ function useStore(){
     return entry;
   };
   const updateOhRegistryItem=(id,updates)=>{
-    setData(d=>({...d,overhead_registry:(d.overhead_registry||[]).map(x=>x.id===id?{...x,...updates}:x)}));
+    setData(d=>{
+      const reg=(d.overhead_registry||[]).find(x=>x.id===id);
+      const merged=reg?{...reg,...updates}:updates;
+      const ohId=reg&&reg.synced_oh_id;
+      const projId=reg&&reg.project_id;
+      /* Build project overhead updates from registry fields */
+      const projUpdates={};
+      if(updates.comment!==undefined||updates.category!==undefined)projUpdates.name=updates.comment!==undefined?updates.comment:(merged.comment||merged.category||'');
+      if(updates.amount!==undefined)projUpdates.amount=Number(updates.amount)||0;
+      if(updates.date!==undefined)projUpdates.date=updates.date;
+      if(updates.category!==undefined)projUpdates.category=updates.category;
+      if(updates.cls!==undefined)projUpdates.cls=updates.cls;
+      if(updates.format!==undefined)projUpdates.format=updates.format;
+      if(updates.responsible!==undefined)projUpdates.responsible=updates.responsible;
+      if(updates.cf_type!==undefined)projUpdates.cf_type=updates.cf_type;
+      if(updates.prior_year!==undefined)projUpdates.prior_year=updates.prior_year;
+      const hasProjectUpdates=Object.keys(projUpdates).length>0&&ohId&&projId;
+      return {...d,
+        overhead_registry:(d.overhead_registry||[]).map(x=>x.id===id?{...x,...updates}:x),
+        projects:hasProjectUpdates?d.projects.map(p=>p.id===projId?{...p,overheads:(p.overheads||[]).map(x=>x.id===ohId?{...x,...projUpdates}:x)}:p):d.projects
+      };
+    });
   };
   const deleteOhRegistryItem=(id)=>{
-    setData(d=>({...d,overhead_registry:(d.overhead_registry||[]).filter(x=>x.id!==id)}));
+    setData(d=>{
+      const reg=(d.overhead_registry||[]).find(x=>x.id===id);
+      const ohId=reg&&reg.synced_oh_id;
+      const projId=reg&&reg.project_id;
+      return {...d,
+        overhead_registry:(d.overhead_registry||[]).filter(x=>x.id!==id),
+        projects:(ohId&&projId)?d.projects.map(p=>p.id===projId?{...p,overheads:(p.overheads||[]).filter(x=>x.id!==ohId)}:p):d.projects
+      };
+    });
     showToast('Запись удалена');
   };
   const toggleOhRegistryVerified=(id)=>{
     setData(d=>({...d,overhead_registry:(d.overhead_registry||[]).map(x=>x.id===id?{...x,verified:!x.verified}:x)}));
+  };
+  const clearOverheadRegistry=()=>{
+    if(!confirm('Очистить ВСЕ записи из реестра общих накладных? Проектные накладные останутся, но связи будут разорваны.'))return;
+    console.log('[Manual] Clearing overhead_registry ('+((data.overhead_registry||[]).length)+' entries)');
+    setData(d=>({...d,overhead_registry:[]}));
+    setData(d=>({...d,projects:d.projects.map(p=>({...p,overheads:(p.overheads||[]).map(oh=>oh.synced_reg_id?{...oh,synced_reg_id:null}:oh)}))}));
+    showToast('Реестр накладных очищен');
   };
   const syncOhToProject=(regId)=>{
     const reg=(data.overhead_registry||[]).find(x=>x.id===regId);
@@ -2522,8 +2576,25 @@ function useStore(){
     }
   };
   const bulkImportOhRegistry=(entries)=>{
-    const newEntries=entries.map(e=>({id:uuid(),date:e.date||now().slice(0,10),amount:Number(e.amount)||0,rg:e.rg||'КБ',category:e.category||'',cls:e.cls||'',format:e.format||'счет',responsible:e.responsible||'',comment:e.comment||'',project_id:e.project_id||null,scope:e.scope||(e.project_id?'project':'company'),cf_type:e.cf_type||'OCF',verified:false,synced_oh_id:null,synced_kb_id:null,source:e.source||'file',created_at:now()}));
-    setData(d=>({...d,overhead_registry:[...(d.overhead_registry||[]),...newEntries]}));
+    const _projRgs=['РГ1','РГ2','ФК','IB'];
+    const newEntries=entries.map(e=>{
+      const regId=uuid();const scope=e.scope||(e.project_id?'project':'company');
+      const isProj=scope==='project'&&e.project_id&&_projRgs.includes(e.rg||'');
+      const ohId=isProj?uuid():null;
+      return {_regId:regId,_ohId:ohId,_projId:e.project_id||null,_isProj:isProj,
+        reg:{id:regId,date:e.date||now().slice(0,10),amount:Number(e.amount)||0,rg:e.rg||'КБ',category:e.category||'',cls:e.cls||'',format:e.format||'счет',responsible:e.responsible||'',comment:e.comment||'',project_id:e.project_id||null,scope:scope,cf_type:e.cf_type||'OCF',verified:false,synced_oh_id:ohId,synced_kb_id:null,source:e.source||'file',prior_year:e.prior_year||false,created_at:now()},
+        oh:isProj?{id:ohId,name:e.comment||e.category||'',amount:Number(e.amount)||0,date:e.date||now().slice(0,10),notes:'',category:e.category||'Прочее',cls:e.cls||'прочее',format:e.format||'счет',responsible:e.responsible||'',cf_type:e.cf_type||'OCF',prior_year:e.prior_year||false,synced_reg_id:regId}:null
+      };
+    });
+    setData(d=>{
+      /* Group project overheads by project_id */
+      const projOhMap=new Map();
+      newEntries.forEach(ne=>{if(ne._isProj&&ne.oh){const arr=projOhMap.get(ne._projId)||[];arr.push(ne.oh);projOhMap.set(ne._projId,arr);}});
+      return {...d,
+        overhead_registry:[...(d.overhead_registry||[]),...newEntries.map(ne=>ne.reg)],
+        projects:projOhMap.size>0?d.projects.map(p=>{const ohs=projOhMap.get(p.id);return ohs?{...p,overheads:[...ohs,...(p.overheads||[])]}:p;}):d.projects
+      };
+    });
     showToast(newEntries.length+' записей импортировано');
   };
 
@@ -3329,7 +3400,38 @@ function useStore(){
 
   const stats=useMemo(()=>({projectCount:data.projects.length,activeCount:data.projects.filter(p=>p.status==='ACTIVE').length,clientCount:data.clients.length,personCount:data.persons.filter(p=>p.is_active).length,taskCount:data.projects.reduce((s,p)=>s+(p.tasks||[]).length,0),blockerCount:data.projects.reduce((s,p)=>s+(p.blockers||[]).filter(b=>!b.resolved_at).length,0)}),[data.projects,data.clients,data.persons]);
 
-  return {data,stats,toast,sbStatus,sbLoaded,reconnectSb,addClient,addPerson,addProject,updateProject,activateProject,addAssignment,removeAssignment,addTrack,addTask,addBlocker,resolveBlocker,addPayment,markPaymentAccrued,markPaymentPaid,markAllPaymentsPaid,addPnlOverride,deletePnlOverride,addRecommendation,addRecommendationsBatch,updateRecommendationStatus,deleteRecommendation,addOverhead,updateOverhead,removeOverhead,addKbBudgetItem,updateKbBudgetItem,deleteKbBudgetItem,addHrBudgetItem,updateHrBudgetItem,deleteHrBudgetItem,addOhRegistryItem,updateOhRegistryItem,deleteOhRegistryItem,toggleOhRegistryVerified,syncOhToProject,syncOhToKbBudget,bulkImportOhRegistry,runFkDoubleCheck,addTimeEntry,updateTimeEntry,deleteTimeEntry,autoScheduleTracks,forceScheduleTracks,addGoal,addSubGoal,deleteSubGoal,addSubject,exportData,updateClient,updatePerson,deletePerson,updateTrackDates,updateTrackStatus,deleteTrack,updateTaskStatus,updateTask,deleteTask,deleteProject,updatePayment,deletePayment,advanceStage,importData,addProjectType,deleteProjectType,addDocument,deleteDocument,updateAdminScale,updatePhaseDoc,addInsight,deleteInsight,linkTrackToSubject,unlinkTrackFromSubject,deleteGoal,deleteSubject,linkTrackToInsight,unlinkTrackFromInsight,addTrackDep,removeTrackDep,upsertWeeklyHours,deleteWeeklyHours,lockProject,unlockProject,earlyCompleteProject,addCrmDeal,updateCrmDeal,deleteCrmDeal,addIcfDeal,updateIcfDeal,deleteIcfDeal,bulkImportIcfDeals,toggleNonStudent,getMetricsMap,setMetricsMap,updateMetricsNode,addMetricsNode,deleteMetricsNode,addMetricsLink,deleteMetricsLink,addStagingDeal,updateStagingDeal,deleteStagingDeal,transferStagingToCrm,addCrmStage,updateCrmStage,deleteCrmStage,reorderCrmStage,addChatChannel,updateChatChannel,deleteChatChannel,addChatMessage,updateChatMessage,deleteChatMessage,addChatReaction,pinChatMessage,setChatUser,updatePhaseDates,startPhase,setPhaseStatus,holdProject,resumeProject,addMilestone,updateMilestone,deleteMilestone,completeMilestone,addITColumn,removeITColumn,updateITColumnColor,addITColumnItem,removeITColumnItem,addCardLink,removeCardLink,_ensureITCols,IT_DEFAULT_COLS,BASE_TASK_STATUSES,getGlobalStatuses,getProjectStatuses,addGlobalTaskStatus,removeGlobalTaskStatus,updateGlobalTaskStatus,renameBaseStatus,addLocalTaskStatus,removeLocalTaskStatus,moveGlobalStatusOrder,moveLocalStatusOrder};
+  /* ===== Auth / User CRUD ===== */
+  const hashPwd=async(pwd)=>{const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pwd));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');};
+  const addUser=async(u)=>{
+    const ph=await hashPwd(u.password||'111111');
+    const entry={id:uuid(),login:u.login,password_hash:ph,name:u.name||'',person_id:u.person_id||null,role:u.role||'user',is_active:true,created_at:now(),last_login:null};
+    setData(d=>({...d,users:[...(d.users||[]),entry]}));
+    showToast('Аккаунт создан: '+u.login);return entry;
+  };
+  const updateUser=(userId,updates)=>{
+    setData(d=>({...d,users:(d.users||[]).map(u=>u.id===userId?{...u,...updates}:u)}));
+  };
+  const deleteUser=(userId)=>{
+    setData(d=>({...d,users:(d.users||[]).filter(u=>u.id!==userId)}));
+    showToast('Аккаунт удалён');
+  };
+  const resetUserPassword=async(userId,newPwd)=>{
+    const ph=await hashPwd(newPwd);
+    setData(d=>({...d,users:(d.users||[]).map(u=>u.id===userId?{...u,password_hash:ph}:u)}));
+    showToast('Пароль сброшен');
+  };
+  const validateLogin=async(login,password)=>{
+    const users=data.users||[];
+    const user=users.find(u=>u.login===login&&u.is_active);
+    if(!user)return null;
+    const ph=await hashPwd(password);
+    if(ph!==user.password_hash)return null;
+    /* Update last_login */
+    setData(d=>({...d,users:(d.users||[]).map(u=>u.id===user.id?{...u,last_login:now()}:u)}));
+    return user;
+  };
+
+  return {data,stats,toast,sbStatus,sbLoaded,reconnectSb,hashPwd,addUser,updateUser,deleteUser,resetUserPassword,validateLogin,addClient,addPerson,addProject,updateProject,activateProject,addAssignment,removeAssignment,addTrack,addTask,addBlocker,resolveBlocker,addPayment,markPaymentAccrued,markPaymentPaid,markAllPaymentsPaid,addPnlOverride,deletePnlOverride,addRecommendation,addRecommendationsBatch,updateRecommendationStatus,deleteRecommendation,addOverhead,updateOverhead,removeOverhead,addKbBudgetItem,updateKbBudgetItem,deleteKbBudgetItem,addHrBudgetItem,updateHrBudgetItem,deleteHrBudgetItem,addOhRegistryItem,updateOhRegistryItem,deleteOhRegistryItem,toggleOhRegistryVerified,clearOverheadRegistry,syncOhToProject,syncOhToKbBudget,bulkImportOhRegistry,runFkDoubleCheck,addTimeEntry,updateTimeEntry,deleteTimeEntry,autoScheduleTracks,forceScheduleTracks,addGoal,addSubGoal,deleteSubGoal,addSubject,exportData,updateClient,updatePerson,deletePerson,updateTrackDates,updateTrackStatus,deleteTrack,updateTaskStatus,updateTask,deleteTask,deleteProject,updatePayment,deletePayment,advanceStage,importData,addProjectType,deleteProjectType,addDocument,deleteDocument,updateAdminScale,updatePhaseDoc,addInsight,deleteInsight,linkTrackToSubject,unlinkTrackFromSubject,deleteGoal,deleteSubject,linkTrackToInsight,unlinkTrackFromInsight,addTrackDep,removeTrackDep,upsertWeeklyHours,deleteWeeklyHours,lockProject,unlockProject,earlyCompleteProject,addCrmDeal,updateCrmDeal,deleteCrmDeal,addIcfDeal,updateIcfDeal,deleteIcfDeal,bulkImportIcfDeals,toggleNonStudent,getMetricsMap,setMetricsMap,updateMetricsNode,addMetricsNode,deleteMetricsNode,addMetricsLink,deleteMetricsLink,addStagingDeal,updateStagingDeal,deleteStagingDeal,transferStagingToCrm,addCrmStage,updateCrmStage,deleteCrmStage,reorderCrmStage,addChatChannel,updateChatChannel,deleteChatChannel,addChatMessage,updateChatMessage,deleteChatMessage,addChatReaction,pinChatMessage,setChatUser,updatePhaseDates,startPhase,setPhaseStatus,holdProject,resumeProject,addMilestone,updateMilestone,deleteMilestone,completeMilestone,addITColumn,removeITColumn,updateITColumnColor,addITColumnItem,removeITColumnItem,addCardLink,removeCardLink,_ensureITCols,IT_DEFAULT_COLS,BASE_TASK_STATUSES,getGlobalStatuses,getProjectStatuses,addGlobalTaskStatus,removeGlobalTaskStatus,updateGlobalTaskStatus,renameBaseStatus,addLocalTaskStatus,removeLocalTaskStatus,moveGlobalStatusOrder,moveLocalStatusOrder};
 }
 
 /* ===== FORMS ===== */
@@ -7053,6 +7155,95 @@ function SettingsView({store}){
       <span style={{fontSize:13,color:'var(--text2)',marginLeft:8}}>{theme==='dark'?'Тёмная тема':'Светлая тема'}</span>
     </div>
   </div>
+  {(()=>{
+    const _sess=(() => {try{return JSON.parse(sessionStorage.getItem('pp_auth_session'));}catch(e){return null;}})();
+    if(!_sess||_sess.role!=='admin')return null;
+    const users=store.data.users||[];
+    const persons=store.data.persons||[];
+    const [showNewUser,setShowNewUser]=React.useState(false);
+    const [nuForm,setNuForm]=React.useState({login:'',password:'111111',name:'',person_id:'',role:'user'});
+    const [resetInfo,setResetInfo]=React.useState(null);
+    const genLogin=(name)=>{
+      if(!name)return'';
+      const parts=name.trim().split(/\s+/);
+      if(parts.length<2)return name.toLowerCase().replace(/[^a-zа-яё0-9]/gi,'');
+      const translitMap={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
+      const tlit=(s)=>s.toLowerCase().split('').map(c=>translitMap[c]||c).join('').replace(/[^a-z0-9]/g,'');
+      const first=tlit(parts[0]);
+      const last=tlit(parts[parts.length-1]);
+      return first.charAt(0)+last;
+    };
+    const handlePersonSelect=(pid)=>{
+      const p=persons.find(x=>x.id===pid);
+      if(p){setNuForm(f=>({...f,person_id:pid,name:p.name,login:genLogin(p.name)}));}
+      else{setNuForm(f=>({...f,person_id:''}));}
+    };
+    const doCreate=async()=>{
+      if(!nuForm.login){alert('Укажите логин');return;}
+      if(users.find(u=>u.login===nuForm.login)){alert('Логин уже занят');return;}
+      await store.addUser(nuForm);
+      setNuForm({login:'',password:'111111',name:'',person_id:'',role:'user'});
+      setShowNewUser(false);
+    };
+    const doReset=async(userId)=>{
+      const newPwd=Math.random().toString(36).slice(2,10);
+      await store.resetUserPassword(userId,newPwd);
+      setResetInfo({userId,newPwd});
+    };
+    return <div className="card" style={{marginBottom:16}}>
+      <div className="card-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>Управление аккаунтами ({users.length})
+        <button className="btn btn-success btn-sm" style={{fontSize:11}} onClick={()=>setShowNewUser(!showNewUser)}>+ Новый аккаунт</button>
+      </div>
+      {showNewUser&&<div style={{marginBottom:12,padding:12,background:'var(--bg2)',borderRadius:8,border:'1px solid var(--border)'}}>
+        <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap'}}>
+          <div style={{flex:1,minWidth:150}}>
+            <label style={{fontSize:10,color:'var(--text2)'}}>Сотрудник</label>
+            <select value={nuForm.person_id} onChange={e=>handlePersonSelect(e.target.value)} style={{width:'100%',padding:'6px 8px',fontSize:12,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)'}}>
+              <option value="">— не привязан —</option>
+              {persons.filter(p=>p.is_active).sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div style={{flex:1,minWidth:120}}>
+            <label style={{fontSize:10,color:'var(--text2)'}}>Логин</label>
+            <input value={nuForm.login} onChange={e=>setNuForm(f=>({...f,login:e.target.value}))} placeholder="login" style={{width:'100%',padding:'6px 8px',fontSize:12,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)',boxSizing:'border-box'}}/>
+          </div>
+          <div style={{flex:1,minWidth:120}}>
+            <label style={{fontSize:10,color:'var(--text2)'}}>Пароль</label>
+            <input value={nuForm.password} onChange={e=>setNuForm(f=>({...f,password:e.target.value}))} placeholder="111111" style={{width:'100%',padding:'6px 8px',fontSize:12,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)',boxSizing:'border-box'}}/>
+          </div>
+          <div style={{minWidth:90}}>
+            <label style={{fontSize:10,color:'var(--text2)'}}>Роль</label>
+            <select value={nuForm.role} onChange={e=>setNuForm(f=>({...f,role:e.target.value}))} style={{width:'100%',padding:'6px 8px',fontSize:12,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)'}}>
+              <option value="user">user</option><option value="admin">admin</option>
+            </select>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <button className="btn btn-primary btn-sm" style={{fontSize:11}} onClick={doCreate}>Создать</button>
+          <button className="btn btn-secondary btn-sm" style={{fontSize:11}} onClick={()=>setShowNewUser(false)}>Отмена</button>
+        </div>
+      </div>}
+      {resetInfo&&<div style={{marginBottom:8,padding:8,background:'rgba(34,197,94,0.1)',borderRadius:6,border:'1px solid rgba(34,197,94,0.2)',fontSize:12,color:'var(--green)'}}>
+        Новый пароль: <strong style={{fontFamily:'monospace',letterSpacing:1}}>{resetInfo.newPwd}</strong> — сообщите пользователю (показывается один раз)
+        <span style={{cursor:'pointer',marginLeft:8}} onClick={()=>setResetInfo(null)}>✕</span>
+      </div>}
+      <table style={{width:'100%',fontSize:12}}><thead><tr><th>Логин</th><th>Имя</th><th>Роль</th><th>Сотрудник</th><th>Последний вход</th><th></th></tr></thead>
+      <tbody>{users.map(u=>{
+        const linkedP=u.person_id&&persons.find(p=>p.id===u.person_id);
+        return <tr key={u.id}>
+          <td style={{fontWeight:600,fontFamily:'monospace'}}>{u.login}</td>
+          <td>{u.name||'—'}</td>
+          <td><span style={{fontSize:10,padding:'2px 6px',borderRadius:4,background:u.role==='admin'?'rgba(251,191,36,0.15)':'rgba(99,102,241,0.1)',color:u.role==='admin'?'#eab308':'#6366f1'}}>{u.role}</span></td>
+          <td style={{fontSize:11,color:'var(--text2)'}}>{linkedP?linkedP.name:'—'}</td>
+          <td style={{fontSize:10,color:'var(--text2)'}}>{u.last_login?u.last_login.slice(0,16).replace('T',' '):'никогда'}</td>
+          <td style={{display:'flex',gap:4}}>
+            <button style={{fontSize:9,padding:'2px 6px',border:'1px solid var(--amber)',borderRadius:4,background:'transparent',color:'var(--amber)',cursor:'pointer'}} onClick={()=>doReset(u.id)} title="Сбросить пароль">🔑</button>
+            {u.id!=='__ADMIN__'&&<button style={{fontSize:9,padding:'2px 6px',border:'1px solid var(--red)',borderRadius:4,background:'transparent',color:'var(--red)',cursor:'pointer'}} onClick={()=>{if(confirm('Удалить аккаунт «'+u.login+'»?'))store.deleteUser(u.id);}} title="Удалить">✕</button>}
+          </td>
+        </tr>;
+      })}</tbody></table>
+    </div>;
+  })()}
   <div className="card" style={{marginBottom:16}}><div className="card-title">Типы проектов ({(store.data.projectTypes||[]).length})</div>
     <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>{(store.data.projectTypes||[]).map(t=><span key={t} className="type-chip">{t}<span className="del" onClick={()=>{if(confirm('Удалить тип "'+t+'"?'))store.deleteProjectType(t);}}>×</span></span>)}</div>
     <div style={{display:'flex',gap:8}}><input id="new-pt-input" placeholder="Новый тип..." style={{flex:1,padding:'6px 10px',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',fontSize:12}}/><button className="btn btn-success btn-sm" onClick={()=>{const inp=document.getElementById('new-pt-input');if(inp.value.trim()){store.addProjectType(inp.value.trim());inp.value='';}}}>+ Добавить</button></div></div>
@@ -7325,8 +7516,8 @@ function FinanceMachineView({store,goProject}){
   const [editBal,setEditBal]=useState(null);
   const [showDetail,setShowDetail]=useState(false);
 
-  /* === DATA & COMPUTATION === */
-  {
+  /* === DATA & COMPUTATION (wrapped in try-catch) === */
+  try {
   const projects=store.data.projects.filter(p=>p.status!=='DRAFT');
   const persons=store.data.persons;
   const pnls=projects.map(p=>({...p,pnl:calcPnlHealth(p,persons)}));
@@ -8627,6 +8818,7 @@ function FinanceMachineView({store,goProject}){
             <button className="btn" style={{fontSize:11,padding:'4px 12px',background:'var(--green)',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}} onClick={pullFromSystem} title="Подтянуть накладные из проектов и бюджета КБ">⬇ Из системы</button>
             <button className="btn" style={{fontSize:11,padding:'4px 12px',background:'var(--accent2)',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}} onClick={openNew}>+ Новая запись</button>
             <button className="btn" style={{fontSize:11,padding:'4px 12px',background:'var(--amber)',color:'#000',border:'none',borderRadius:6,cursor:'pointer'}} onClick={()=>{const w=store.runFkDoubleCheck();if(w)setFkWarnings(new Map(w));}} title="Сопоставить ФК-записи с накладными проектов">🔍 Проверить ФК</button>
+            <button className="btn" style={{fontSize:11,padding:'4px 12px',background:'var(--red)',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',opacity:0.8}} onClick={()=>store.clearOverheadRegistry()} title="Полная очистка реестра (ручная)">🗑 Очистить реестр</button>
             <button className="btn" style={{fontSize:11,padding:'4px 12px',background:'var(--violet)',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}} onClick={()=>{
               /* Генерация диагностического отчёта: project.overheads vs overhead_registry */
               const _reg=store.data.overhead_registry||[];
@@ -10104,6 +10296,13 @@ function FinanceMachineView({store,goProject}){
   })()}
 
   </div>;
+  } catch(_fmError) {
+    console.error('FinanceMachineView error:', _fmError);
+    return <div style={{padding:20,margin:20,background:'#fff0f0',border:'2px solid red',borderRadius:8}}>
+      <h3 style={{color:'red',margin:'0 0 8px'}}>Ошибка в FinMashina</h3>
+      <pre style={{whiteSpace:'pre-wrap',fontSize:12,color:'#333'}}>{String(_fmError)}</pre>
+      <pre style={{whiteSpace:'pre-wrap',fontSize:10,color:'#888',marginTop:8}}>{_fmError&&_fmError.stack}</pre>
+    </div>;
   }
 }
 
@@ -11555,8 +11754,50 @@ function TestPage({store}) {
   </div>;
 }
 
+function LoginScreen({onLogin,store}){
+  const [login,setLogin]=useState('');
+  const [pwd,setPwd]=useState('');
+  const [err,setErr]=useState('');
+  const [loading,setLoading]=useState(false);
+  const handleSubmit=async(e)=>{
+    e.preventDefault();setErr('');setLoading(true);
+    try{
+      const user=await store.validateLogin(login.trim(),pwd);
+      if(user){
+        const session={user_id:user.id,login:user.login,name:user.name,role:user.role,person_id:user.person_id,login_time:new Date().toISOString()};
+        sessionStorage.setItem('pp_auth_session',JSON.stringify(session));
+        onLogin(session);
+      } else {
+        setErr('Неверный логин или пароль');
+      }
+    }catch(ex){setErr('Ошибка: '+ex.message);}
+    setLoading(false);
+  };
+  return <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#0f0f23 0%,#1a1a3e 50%,#0f0f23 100%)',fontFamily:'-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif'}}>
+    <form onSubmit={handleSubmit} style={{background:'rgba(255,255,255,0.05)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:'40px 36px',width:380,boxShadow:'0 20px 60px rgba(0,0,0,0.5)'}}>
+      <div style={{textAlign:'center',marginBottom:28}}>
+        <div style={{fontSize:28,fontWeight:700,color:'#fff',marginBottom:4}}>Portfolio System</div>
+        <div style={{fontSize:13,color:'#8888aa'}}>Double Diamond — Paper Planes</div>
+      </div>
+      <div style={{marginBottom:16}}>
+        <label style={{display:'block',fontSize:11,color:'#8888aa',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Логин</label>
+        <input value={login} onChange={e=>setLogin(e.target.value)} autoFocus placeholder="username" style={{width:'100%',padding:'10px 14px',background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.15)',borderRadius:8,color:'#fff',fontSize:14,outline:'none',boxSizing:'border-box'}}/>
+      </div>
+      <div style={{marginBottom:20}}>
+        <label style={{display:'block',fontSize:11,color:'#8888aa',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Пароль</label>
+        <input value={pwd} onChange={e=>setPwd(e.target.value)} type="password" placeholder="••••••" style={{width:'100%',padding:'10px 14px',background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.15)',borderRadius:8,color:'#fff',fontSize:14,outline:'none',boxSizing:'border-box'}}/>
+      </div>
+      {err&&<div style={{color:'#ef4444',fontSize:12,marginBottom:12,padding:'8px 12px',background:'rgba(239,68,68,0.1)',borderRadius:6}}>{err}</div>}
+      <button type="submit" disabled={loading||!login||!pwd} style={{width:'100%',padding:'11px 0',background:loading?'#555':'linear-gradient(135deg,#4361ee,#7c3aed)',color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:loading?'wait':'pointer',opacity:(loading||!login||!pwd)?0.6:1}}>{loading?'Вход...':'Войти'}</button>
+    </form>
+  </div>;
+}
+
 function App(){
   const store=useStore();
+  const [session,setSession]=useState(()=>{try{return JSON.parse(sessionStorage.getItem('pp_auth_session'));}catch(e){return null;}});
+  const handleLogin=(s)=>setSession(s);
+  const handleLogout=()=>{sessionStorage.removeItem('pp_auth_session');setSession(null);};
   useEffect(()=>{window.__ppAPI={addRecs:(recs)=>store.addRecommendationsBatch(recs),getData:()=>store.data};},[store]);
   useEffect(()=>{
     const recs=store.data.recommendations||[];
@@ -11585,10 +11826,21 @@ function App(){
     <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
   </div>;
 
+  /* Auth gate — after all hooks, before main render */
+  const hasUsers=(store.data.users||[]).length>0;
+  if(!session&&hasUsers) return <LoginScreen onLogin={handleLogin} store={store}/>;
+
   return <div className="app">
     <div className="sidebar">
       <div className="sidebar-header"><h1>Portfolio System</h1><p>Double Diamond</p></div>
       {NAV.map(n=><div key={n.id} className={`nav-item ${page===n.id||(page==='project-detail'&&n.id==='projects')?'active':''}`} onClick={()=>{setPage(n.id);setSelProjId(null);}}><span style={{width:18,textAlign:'center',fontSize:14}}>{n.icon}</span>{n.label}</div>)}
+      {/* User info + Logout */}
+      {session&&<div style={{position:'absolute',bottom:52,left:12,right:12,display:'flex',flexDirection:'column',gap:4}}>
+        <div style={{fontSize:10,color:'#8888aa',padding:'0 2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={session.name||session.login}>{session.role==='admin'?'👑':'👤'} {session.name||session.login}</div>
+        <div onClick={handleLogout} style={{padding:'6px 10px',borderRadius:6,background:'rgba(239,68,68,0.15)',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:11,color:'#ef4444',border:'1px solid rgba(239,68,68,0.2)'}} onMouseOver={e=>e.currentTarget.style.background='rgba(239,68,68,0.25)'} onMouseOut={e=>e.currentTarget.style.background='rgba(239,68,68,0.15)'}>
+          <span>🚪</span><span>Выход</span>
+        </div>
+      </div>}
       {/* Supabase status indicator */}
       <div onClick={()=>setShowSbConfig(true)} style={{position:'absolute',bottom:12,left:12,right:12,padding:'8px 10px',borderRadius:8,background:'rgba(255,255,255,0.05)',cursor:'pointer',display:'flex',alignItems:'center',gap:8,fontSize:11,color:'#b0b0cc'}}>
         <span style={{width:8,height:8,borderRadius:'50%',background:_sbDot[store.sbStatus]||'#6b7280',flexShrink:0}}/>
