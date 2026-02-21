@@ -1798,7 +1798,7 @@ function useStore(){
             _sbSkipSave.current=true;
             setData(prev=>({...prev,
               chat_messages:_mergeById(prev.chat_messages,sbData.chat_messages),
-              chat_channels:prev.chat_channels||(sbData.chat_channels||null),
+              chat_channels:_mergeById(prev.chat_channels,sbData.chat_channels),
               notifications:_mergeById(prev.notifications,sbData.notifications)
             }));
             setTimeout(()=>{_sbSkipSave.current=false;},500);
@@ -1854,7 +1854,16 @@ function useStore(){
             _sbSkipSave.current=true;setData(_rcData);
             setTimeout(()=>{_sbSkipSave.current=false;},500);
           } else {
-            console.log('[Reconnect] Keeping localStorage data (richer or equal)');
+            /* Still merge chat arrays from Supabase */
+            const _mbi2=(la,ra)=>{const map=new Map();(la||[]).forEach(i=>map.set(i.id,i));(ra||[]).forEach(i=>{if(!map.has(i.id))map.set(i.id,i);});return Array.from(map.values());};
+            _sbSkipSave.current=true;
+            setData(prev=>({...prev,
+              chat_messages:_mbi2(prev.chat_messages,_rcData.chat_messages),
+              chat_channels:_mbi2(prev.chat_channels,_rcData.chat_channels),
+              notifications:_mbi2(prev.notifications,_rcData.notifications)
+            }));
+            setTimeout(()=>{_sbSkipSave.current=false;},500);
+            console.log('[Reconnect] Keeping localStorage data, merged chat/notifications');
           }
           setSbStatus('online');
         } else if(error){
@@ -1892,21 +1901,24 @@ function useStore(){
             const newNotifs=remoteNotifs.filter(n=>!localNotifIds.has(n.id));
             /* Also sync read-status for notifications: if remote has read=true, update locally */
             const remoteReadMap={};remoteNotifs.forEach(n=>{if(n.read)remoteReadMap[n.id]=true;});
-            /* Sync chat_channels if missing locally */
-            const needCh=!prev.chat_channels&&remoteCh;
-            if(newMsgs.length===0&&newNotifs.length===0&&!Object.keys(remoteReadMap).length&&!needCh)return prev;
+            /* Sync chat_channels — merge by id */
+            const localChIds=new Set((prev.chat_channels||[]).map(c=>c.id));
+            const remoteChArr=remoteCh||[];
+            const newCh=remoteChArr.filter(c=>!localChIds.has(c.id));
+            if(newMsgs.length===0&&newNotifs.length===0&&newCh.length===0&&!Object.keys(remoteReadMap).length)return prev;
             const mergedNotifs=[...(prev.notifications||[]).map(n=>remoteReadMap[n.id]?{...n,read:true}:n),...newNotifs];
-            if(newMsgs.length===0&&newNotifs.length===0&&!needCh&&mergedNotifs.length===(prev.notifications||[]).length){
+            if(newMsgs.length===0&&newNotifs.length===0&&newCh.length===0&&mergedNotifs.length===(prev.notifications||[]).length){
               const changed=(prev.notifications||[]).some(n=>!n.read&&remoteReadMap[n.id]);
               if(!changed)return prev;
             }
             if(newMsgs.length>0)console.log('[Poll] +'+newMsgs.length+' new chat message(s)');
             if(newNotifs.length>0)console.log('[Poll] +'+newNotifs.length+' new notification(s)');
+            if(newCh.length>0)console.log('[Poll] +'+newCh.length+' new chat channel(s)');
             const result={...prev,
               chat_messages:[...(prev.chat_messages||[]),...newMsgs],
-              notifications:mergedNotifs
+              notifications:mergedNotifs,
+              chat_channels:[...(prev.chat_channels||[]),...newCh]
             };
-            if(needCh)result.chat_channels=remoteCh;
             return result;
           });
           setTimeout(()=>{_sbSkipSave.current=false;},300);
@@ -3600,10 +3612,11 @@ function useStore(){
   const addChatChannel=(ch)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_channels=[...nd.chat_channels,{id:uuid(),created_at:now(),type:'public',pinned:false,...ch}];return nd;});showToast('Канал создан');};
   const updateChatChannel=(id,upd)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_channels=nd.chat_channels.map(c=>c.id===id?{...c,...upd}:c);return nd;});};
   const deleteChatChannel=(id)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_channels=nd.chat_channels.filter(c=>c.id!==id);nd.chat_messages=nd.chat_messages.filter(m=>m.channel_id!==id);return nd;});showToast('Канал удалён');};
-  const addChatMessage=(msg)=>{const id=uuid();const ts=now();setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=[...nd.chat_messages,{id,created_at:ts,author:nd.chat_current_user,...msg,reactions:[],edited:false}];/* Detect @mentions and create notifications */const mentionRx=/@([\w.]+)/g;let mt;const text=msg.text||'';while((mt=mentionRx.exec(text))!==null){const login=mt[1];const targetUser=(nd.users||[]).find(u=>u.login===login&&u.is_active);if(targetUser&&targetUser.id!==nd.chat_current_user?.id){if(!nd.notifications)nd.notifications=[];nd.notifications=[...nd.notifications,{id:uuid(),created_at:ts,read:false,type:'mention',user_id:targetUser.id,user_login:targetUser.login,from_user_id:nd.chat_current_user?.id||'me',from_user_name:nd.chat_current_user?.name||'Аноним',channel_id:msg.channel_id||'',message_id:id,message_text:text.length>120?text.slice(0,120)+'…':text,thread_id:msg.thread_id||null}];}}return nd;});return id;};
+  const _getChatAuthor=()=>{try{const s=JSON.parse(sessionStorage.getItem('pp_auth_session'));if(s)return{id:s.user_id,name:s.name||s.login,avatar:(s.name||s.login||'?')[0].toUpperCase()};}catch(e){}return{id:'me',name:'Илья',avatar:'И'};};
+  const addChatMessage=(msg)=>{const id=uuid();const ts=now();const author=_getChatAuthor();setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=[...nd.chat_messages,{id,created_at:ts,author,...msg,reactions:[],edited:false}];/* Detect @mentions and create notifications */const mentionRx=/@([\w.]+)/g;let mt;const text=msg.text||'';while((mt=mentionRx.exec(text))!==null){const login=mt[1];const targetUser=(nd.users||[]).find(u=>u.login===login&&u.is_active);if(targetUser&&targetUser.id!==author.id){if(!nd.notifications)nd.notifications=[];nd.notifications=[...nd.notifications,{id:uuid(),created_at:ts,read:false,type:'mention',user_id:targetUser.id,user_login:targetUser.login,from_user_id:author.id,from_user_name:author.name,channel_id:msg.channel_id||'',message_id:id,message_text:text.length>120?text.slice(0,120)+'…':text,thread_id:msg.thread_id||null}];}}return nd;});return id;};
   const updateChatMessage=(id,upd)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=nd.chat_messages.map(m=>m.id===id?{...m,...upd,edited:true,edited_at:now()}:m);return nd;});};
   const deleteChatMessage=(id)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=nd.chat_messages.filter(m=>m.id!==id&&m.thread_id!==id);return nd;});};
-  const addChatReaction=(msgId,emoji)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=nd.chat_messages.map(m=>{if(m.id!==msgId)return m;const rx=[...(m.reactions||[])];const existing=rx.findIndex(r=>r.emoji===emoji&&r.user_id===nd.chat_current_user.id);if(existing>=0)rx.splice(existing,1);else rx.push({emoji,user_id:nd.chat_current_user.id,user_name:nd.chat_current_user.name});return{...m,reactions:rx};});return nd;});};
+  const addChatReaction=(msgId,emoji)=>{const au=_getChatAuthor();setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=nd.chat_messages.map(m=>{if(m.id!==msgId)return m;const rx=[...(m.reactions||[])];const existing=rx.findIndex(r=>r.emoji===emoji&&r.user_id===au.id);if(existing>=0)rx.splice(existing,1);else rx.push({emoji,user_id:au.id,user_name:au.name});return{...m,reactions:rx};});return nd;});};
   const pinChatMessage=(msgId)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=nd.chat_messages.map(m=>m.id===msgId?{...m,pinned:!m.pinned}:m);return nd;});};
   const setChatUser=(user)=>{setData(d=>({...d,chat_current_user:user}));};
 
@@ -11676,12 +11689,17 @@ function ChatView({store}){
     const isSys=m.is_system||m.author?.id==='system';
     const tc=getThreadCount(m.id);
     if(isSys){const sysTc=getThreadCount(m.id);
-      /* If message has task_id, render interactive task card with live data from store */
+      /* If message has task_id, render interactive task card ONLY for the first message of this task */
       if(m.task_id){
-        const projId=m.channel_id?.replace('proj_','');
-        const proj=projId?(store.data.projects||[]).find(p=>p.id===projId):null;
-        const tsk=proj?(proj.tasks||[]).find(t=>t.id===m.task_id):null;
-        if(tsk) return renderTaskCard(tsk,projId,proj,{msgId:m.id,createdAt:m.created_at,isThread,sysTc});
+        const allTaskMsgs=chatData.messages.filter(x=>x.task_id===m.task_id&&x.channel_id===m.channel_id&&!x.thread_id).sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||''));
+        const isFirstTaskMsg=allTaskMsgs.length>0&&allTaskMsgs[0].id===m.id;
+        if(isFirstTaskMsg){
+          const projId=m.channel_id?.replace('proj_','');
+          const proj=projId?(store.data.projects||[]).find(p=>p.id===projId):null;
+          const tsk=proj?(proj.tasks||[]).find(t=>t.id===m.task_id):null;
+          if(tsk) return renderTaskCard(tsk,projId,proj,{msgId:m.id,createdAt:m.created_at,isThread,sysTc});
+        }
+        /* Subsequent task messages → render as regular system log (fall through below) */
       }
       /* Default system message rendering */
       return <div key={m.id} style={{padding:'6px 16px',display:'flex',alignItems:'flex-start',gap:8,background:'rgba(99,102,241,.03)',borderLeft:'3px solid var(--bg4)',margin:'2px 8px',borderRadius:'0 6px 6px 0'}}>
