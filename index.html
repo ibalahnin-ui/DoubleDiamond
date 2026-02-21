@@ -1631,6 +1631,33 @@ function useStore(){
   const _sbTimer=useRef(null);
   const _sbSkipSave=useRef(false);
 
+  /* Helper: sanitize data — convert unexpected objects/arrays in leaf fields to strings */
+  const _sanitize=(d)=>{
+    if(!d||typeof d!=='object')return d;
+    const LEAF_FIELDS=['name','code','status','description','comment','notes','source','date','month','rg','category','cls','format','responsible','label','type','amount','amount_plan','amount_fact','cf_type','tax_rate','salary_monthly','grade','department','hire_date','fire_date','email','phone','planned_date','actual_date','expected_week_monday','payment_date','title'];
+    const cleanObj=(obj)=>{
+      if(!obj||typeof obj!=='object'||Array.isArray(obj))return obj;
+      const out={};
+      for(const k of Object.keys(obj)){
+        const v=obj[k];
+        if(v===null||v===undefined){out[k]=v;}
+        else if(Array.isArray(v)){out[k]=v.map(item=>typeof item==='object'&&item!==null&&!Array.isArray(item)?cleanObj(item):item);}
+        else if(typeof v==='object'&&LEAF_FIELDS.includes(k)){out[k]=String(v.name||v.value||v.label||v.start||JSON.stringify(v));}
+        else if(typeof v==='object'){out[k]=cleanObj(v);}
+        else{out[k]=v;}
+      }
+      return out;
+    };
+    const result={...d};
+    ['projects','clients','persons'].forEach(key=>{
+      if(Array.isArray(result[key])){result[key]=result[key].map(item=>cleanObj(item));}
+    });
+    ['overhead_registry','kb_budget'].forEach(key=>{
+      if(Array.isArray(result[key])){result[key]=result[key].map(item=>cleanObj(item));}
+    });
+    return result;
+  };
+
   /* Helper: compute data richness score */
   const _dataScore=(d)=>{if(!d||typeof d!=='object')return 0;return (d.projects||[]).length*10+(d.clients||[]).length*5+(d.persons||[]).length*3+(d.projects||[]).reduce((s,p)=>(s+(p.payments||[]).length*2+(p.tasks||[]).length+(p.phases||[]).length+(p.project_overheads||[]).length*2+(p.time_entries||[]).length*2+(p.overheads||[]).length+(p.timeEntries||[]).length),0);};
 
@@ -1641,7 +1668,7 @@ function useStore(){
     _sb.from('app_data').select('payload').eq('id',1).single()
       .then(({data:row,error})=>{
         if(!error&&row&&row.payload&&typeof row.payload==='object'&&Object.keys(row.payload).length>0){
-          const sbData=row.payload;
+          const sbData=_sanitize(row.payload);
           const lsScore=_dataScore(data);
           const sbScore=_dataScore(sbData);
           console.log('[Sync] localStorage score='+lsScore+' ('+((data.projects||[]).length)+' projects), Supabase score='+sbScore+' ('+((sbData.projects||[]).length)+' projects)');
@@ -1702,16 +1729,17 @@ function useStore(){
     _sb.from('app_data').select('payload').eq('id',1).single()
       .then(({data:row,error})=>{
         if(!error&&row&&row.payload&&Object.keys(row.payload).length>0){
-          const sbScore=_dataScore(row.payload);
+          const _rcData=_sanitize(row.payload);
+          const sbScore=_dataScore(_rcData);
           const lsScore=_dataScore(data);
-          const sbP=(row.payload.projects||[]).length;const lsP=(data.projects||[]).length;
+          const sbP=(_rcData.projects||[]).length;const lsP=(data.projects||[]).length;
           if(sbScore>lsScore){
-            _sbSkipSave.current=true;setData(row.payload);
+            _sbSkipSave.current=true;setData(_rcData);
             setTimeout(()=>{_sbSkipSave.current=false;},500);
             console.log('[Reconnect] Using Supabase data (richer)');
           } else if(lsScore>sbScore&&lsP<=5&&sbP>10){
             console.warn('[Reconnect] PROTECTION: localStorage looks like SEED, using Supabase');
-            _sbSkipSave.current=true;setData(row.payload);
+            _sbSkipSave.current=true;setData(_rcData);
             setTimeout(()=>{_sbSkipSave.current=false;},500);
           } else {
             console.log('[Reconnect] Keeping localStorage data (richer or equal)');
