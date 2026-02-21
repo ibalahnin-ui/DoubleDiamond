@@ -1789,40 +1789,22 @@ function useStore(){
       .then(({data:row,error})=>{
         if(!error&&row&&row.payload&&typeof row.payload==='object'&&Object.keys(row.payload).length>0){
           const sbData=_sanitize(row.payload);
-          const lsScore=_dataScore(data);
-          const sbScore=_dataScore(sbData);
-          console.log('[Sync/Master] localStorage score='+lsScore+', Supabase score='+sbScore);
-          /* AUTO-BACKUP before any overwrite */
+          console.log('[Sync/Master] Supabase data loaded — ALWAYS using Supabase as master');
+          /* AUTO-BACKUP localStorage before overwrite */
           try{const bk='pp_backup_'+new Date().toISOString().slice(0,19).replace(/:/g,'-');localStorage.setItem(bk,JSON.stringify(data));console.log('[Sync] Backup saved:',bk);}catch(e){}
-
-          /* Helper: merge arrays by id — union of both sources */
-          const _mergeById=(localArr,remoteArr)=>{
-            const map=new Map();
-            (localArr||[]).forEach(item=>map.set(item.id,item));
-            (remoteArr||[]).forEach(item=>{if(!map.has(item.id))map.set(item.id,item);});
-            return Array.from(map.values());
-          };
-          if(sbScore>lsScore){
-            _sbSkipSave.current=true;
-            setData(prev=>({...sbData}));
-            setTimeout(()=>{_sbSkipSave.current=false;},500);
-            console.log('[Sync/Master] Using Supabase data (richer: '+sbScore+' vs '+lsScore+')');
-          } else if(lsScore>sbScore&&(data.projects||[]).length<=5&&(sbData.projects||[]).length>10){
-            console.warn('[Sync/Master] PROTECTION: localStorage looks empty, using Supabase');
-            _sbSkipSave.current=true;
-            setData(prev=>({...sbData}));
-            setTimeout(()=>{_sbSkipSave.current=false;},500);
-          } else {
-            /* Keeping localStorage data, but ALWAYS merge shared arrays (chat, notifications) from Supabase */
-            _sbSkipSave.current=true;
-            setData(prev=>({...prev,
-              chat_messages:_mergeById(prev.chat_messages,sbData.chat_messages),
-              chat_channels:_mergeById(prev.chat_channels,sbData.chat_channels),
-              notifications:_mergeById(prev.notifications,sbData.notifications)
-            }));
-            setTimeout(()=>{_sbSkipSave.current=false;},500);
-            console.log('[Sync/Master] Keeping localStorage data (score='+lsScore+'), merged chat/notifications from Supabase');
-          }
+          /* Supabase = единственный источник правды. Всегда используем данные из Supabase. */
+          _sbSkipSave.current=true;
+          setData(prev=>{
+            /* Preserve _deletedProjectIds and _deletedPersonIds from both sources */
+            const merged={...sbData};
+            merged._deletedProjectIds=[...new Set([...(prev._deletedProjectIds||[]),...(sbData._deletedProjectIds||[])])];
+            merged._deletedPersonIds=[...new Set([...(prev._deletedPersonIds||[]),...(sbData._deletedPersonIds||[])])];
+            /* Filter out deleted items */
+            if(merged._deletedProjectIds.length>0){const ds=new Set(merged._deletedProjectIds);merged.projects=(merged.projects||[]).filter(p=>!ds.has(p.id));}
+            if(merged._deletedPersonIds.length>0){const ds=new Set(merged._deletedPersonIds);merged.persons=(merged.persons||[]).filter(p=>!ds.has(p.id));}
+            return merged;
+          });
+          setTimeout(()=>{_sbSkipSave.current=false;},500);
           setSbStatus('online');
         } else if(error){
           console.warn('Supabase load error:',error);
@@ -1861,29 +1843,9 @@ function useStore(){
       .then(({data:row,error})=>{
         if(!error&&row&&row.payload&&Object.keys(row.payload).length>0){
           const _rcData=_sanitize(row.payload);
-          const sbScore=_dataScore(_rcData);
-          const lsScore=_dataScore(data);
-          const sbP=(_rcData.projects||[]).length;const lsP=(data.projects||[]).length;
-          if(sbScore>lsScore){
-            _sbSkipSave.current=true;setData(_rcData);
-            setTimeout(()=>{_sbSkipSave.current=false;},500);
-            console.log('[Reconnect] Using Supabase data (richer)');
-          } else if(lsScore>sbScore&&lsP<=5&&sbP>10){
-            console.warn('[Reconnect] PROTECTION: localStorage looks like SEED, using Supabase');
-            _sbSkipSave.current=true;setData(_rcData);
-            setTimeout(()=>{_sbSkipSave.current=false;},500);
-          } else {
-            /* Still merge chat arrays from Supabase */
-            const _mbi2=(la,ra)=>{const map=new Map();(la||[]).forEach(i=>map.set(i.id,i));(ra||[]).forEach(i=>{if(!map.has(i.id))map.set(i.id,i);});return Array.from(map.values());};
-            _sbSkipSave.current=true;
-            setData(prev=>({...prev,
-              chat_messages:_mbi2(prev.chat_messages,_rcData.chat_messages),
-              chat_channels:_mbi2(prev.chat_channels,_rcData.chat_channels),
-              notifications:_mbi2(prev.notifications,_rcData.notifications)
-            }));
-            setTimeout(()=>{_sbSkipSave.current=false;},500);
-            console.log('[Reconnect] Keeping localStorage data, merged chat/notifications');
-          }
+          console.log('[Reconnect] Supabase data loaded — ALWAYS using as master');
+          _sbSkipSave.current=true;setData(_rcData);
+          setTimeout(()=>{_sbSkipSave.current=false;},500);
           setSbStatus('online');
         } else if(error){
           console.warn('Reconnect error:',error);
