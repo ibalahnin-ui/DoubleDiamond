@@ -1750,70 +1750,62 @@ function useStore(){
   /* Helper: compute data richness score */
   const _dataScore=(d)=>{if(!d||typeof d!=='object')return 0;return (d.projects||[]).length*10+(d.clients||[]).length*5+(d.persons||[]).length*3+(d.kb_budget||[]).length*4+(d.pnl_overrides||[]).length*3+(d.crm_deals||[]).length*3+(d.overhead_registry||[]).length*2+(d.users||[]).length*2+(d.projects||[]).reduce((s,p)=>(s+(p.payments||[]).length*2+(p.tasks||[]).length+(p.phases||[]).length+(p.project_overheads||[]).length*2+(p.time_entries||[]).length*2+(p.overheads||[]).length+(p.timeEntries||[]).length),0);};
 
-  /* === SYNC MODE: online = master (read+write Supabase), localhost = slave (read-only from Supabase) === */
+  /* === SYNC MODE: localhost = isolated (localStorage only), online = master (Supabase read+write) === */
   const _isLocalhost=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1';
-  const _syncMode=_isLocalhost?'slave':'master';
+  const _syncMode=_isLocalhost?'local':'master';
 
-  /* Load from Supabase on start */
+  /* Load from Supabase on start — ONLY for online (master) */
   useEffect(()=>{
+    if(_syncMode==='local'){
+      /* Localhost: полностью изолирован, работает только с localStorage */
+      console.log('[Sync] Mode: local (localhost) — Supabase disabled, using localStorage only');
+      setSbStatus('offline');
+      setSbLoaded(true);
+      return;
+    }
     if(!_sb){setSbStatus('offline');setSbLoaded(true);return;}
     setSbStatus('loading');
-    console.log('[Sync] Mode: '+_syncMode+' ('+window.location.hostname+')');
+    console.log('[Sync] Mode: master (online)');
     _sb.from('app_data').select('payload').eq('id',1).single()
       .then(({data:row,error})=>{
         if(!error&&row&&row.payload&&typeof row.payload==='object'&&Object.keys(row.payload).length>0){
           const sbData=_sanitize(row.payload);
           const lsScore=_dataScore(data);
           const sbScore=_dataScore(sbData);
-          console.log('[Sync] localStorage score='+lsScore+', Supabase score='+sbScore);
+          console.log('[Sync/Master] localStorage score='+lsScore+', Supabase score='+sbScore);
           /* AUTO-BACKUP before any overwrite */
           try{const bk='pp_backup_'+new Date().toISOString().slice(0,19).replace(/:/g,'-');localStorage.setItem(bk,JSON.stringify(data));console.log('[Sync] Backup saved:',bk);}catch(e){}
 
-          if(_syncMode==='slave'){
-            /* LOCALHOST (slave): always take Supabase data — this is the production truth */
-            if(sbScore>0){
-              _sbSkipSave.current=true;
-              setData(prev=>({...sbData}));
-              setTimeout(()=>{_sbSkipSave.current=false;},500);
-              console.log('[Sync/Slave] Loaded production data from Supabase (score='+sbScore+')');
-            } else {
-              console.log('[Sync/Slave] Supabase empty, using localStorage');
-            }
+          if(sbScore>lsScore){
+            _sbSkipSave.current=true;
+            setData(prev=>({...sbData}));
+            setTimeout(()=>{_sbSkipSave.current=false;},500);
+            console.log('[Sync/Master] Using Supabase data (richer: '+sbScore+' vs '+lsScore+')');
+          } else if(lsScore>sbScore&&(data.projects||[]).length<=5&&(sbData.projects||[]).length>10){
+            console.warn('[Sync/Master] PROTECTION: localStorage looks empty, using Supabase');
+            _sbSkipSave.current=true;
+            setData(prev=>({...sbData}));
+            setTimeout(()=>{_sbSkipSave.current=false;},500);
           } else {
-            /* ONLINE (master): smart merge, prefer richer source */
-            const sbProjects=(sbData.projects||[]).length;
-            const lsProjects=(data.projects||[]).length;
-            if(sbScore>lsScore){
-              _sbSkipSave.current=true;
-              setData(prev=>({...sbData}));
-              setTimeout(()=>{_sbSkipSave.current=false;},500);
-              console.log('[Sync/Master] Using Supabase data (richer)');
-            } else if(lsScore>sbScore&&lsProjects<=5&&sbProjects>10){
-              console.warn('[Sync/Master] PROTECTION: localStorage looks empty, using Supabase');
-              _sbSkipSave.current=true;
-              setData(prev=>({...sbData}));
-              setTimeout(()=>{_sbSkipSave.current=false;},500);
-            } else {
-              console.log('[Sync/Master] Keeping localStorage data (score='+lsScore+'), will push to Supabase');
-            }
+            console.log('[Sync/Master] Keeping localStorage data (score='+lsScore+'), will push to Supabase');
           }
           setSbStatus('online');
         } else if(error){
           console.warn('Supabase load error:',error);
           setSbStatus('error');
         } else {
-          console.log('[Sync] Supabase empty'+ (_syncMode==='master'?', will push localStorage data':' — nothing to load'));
+          console.log('[Sync/Master] Supabase empty, will push localStorage data');
           setSbStatus('online');
         }
         setSbLoaded(true);
       }).catch(e=>{console.warn('Supabase fetch failed:',e);setSbStatus('error');setSbLoaded(true);});
   },[]);
 
-  /* Save: localStorage always + Supabase only in master mode (online) */
+  /* Save: localStorage always + Supabase only for online (master) */
   useEffect(()=>{
     try{localStorage.setItem(LS_KEY,JSON.stringify(data));}catch(e){console.warn('LS save error',e);}
-    /* Slave (localhost) NEVER writes to Supabase */
-    if(_syncMode==='slave')return;
+    /* Localhost: никогда не трогает Supabase */
+    if(_syncMode==='local')return;
     if(!_sb||!sbLoaded||_sbSkipSave.current)return;
     /* PROTECTION: don't push empty/SEED data to Supabase */
     const _saveScore=_dataScore(data);
@@ -12062,7 +12054,7 @@ function App(){
 
   const _sbDot={online:'#22c55e',saved:'#22c55e',saving:'#eab308',loading:'#0ea5e9',error:'#ef4444',offline:'#6b7280'};
   const _isLH=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1';
-  const _modeLabel=_isLH?' (slave)':' (master)';
+  const _modeLabel=_isLH?' (локальный)':' (master)';
   const _sbLabel={online:'Online'+_modeLabel,saved:'Сохранено ✓',saving:'Сохраняю...',loading:'Загрузка...',error:'Ошибка',offline:'Локально'+_modeLabel};
 
   /* Loading screen while Supabase data loads */
