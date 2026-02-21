@@ -729,7 +729,7 @@ tr.clickable:hover{background:var(--bg3)}
 </head>
 <body>
 <div id="root"></div>
-<script>window.SEED={"projects":[],"clients":[],"persons":[],"phaseTemplates":[{"id":"b17c2387-c3c9-417f-8d24-6132bcc9c0ed","code":"MINING","name":"Добыча (Mining)","track_class":"BPM","order_num":1,"description":null},{"id":"e29020b0-15fb-42ac-80e2-496789235617","code":"ASSEMBLING","name":"Сборка (Assembling)","track_class":"BPA","order_num":2,"description":null},{"id":"5ccd60c8-0936-4bd6-b097-d21438d4745c","code":"IMPLEMENTATION","name":"Внедрение (Implementation)","track_class":"BPI","order_num":3,"description":null},{"id":"aa09c47e-05df-43f3-8826-3e0a98e73f85","code":"ORGANIZATION","name":"Организация (Organization)","track_class":"BPO","order_num":4,"description":null}],"stageTemplates":[{"id":"43e3f9dc-b2ce-4ab0-b473-c0db09aee707","code":"INIT","name":"Инициация","order_num":1},{"id":"0cbc045f-0caf-463d-8120-262f8c8f3f82","code":"PLAN","name":"Планирование","order_num":2},{"id":"d235da38-e4cf-4b7c-8e53-09a58cd35a07","code":"EXEC","name":"Исполнение","order_num":3},{"id":"eaf5b765-e620-4887-83d3-a9f721ab74d6","code":"MON","name":"Мониторинг","order_num":4},{"id":"7bf2edd2-921f-47dc-a2eb-fc9d2c08681f","code":"CLOSE","name":"Закрытие","order_num":5}],"trackTemplates":[{"id":"a2db9985-3650-492a-b5ca-2c0a2517f268","code":"BPM-1","name":"Опросы и интерпретация","track_class":"BPM","domain":"Research","description":"Количественное исследование ЦА через структурированные анкеты и опросы. Выходы: анкеты, массивы данных, интерпретационные таблицы","management_goal":"Валидация гипотез через количественные данные","key_outputs":"Анкеты, массивы опросных данных, интерпретационные таблицы","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"cba34c91-7c8b-4727-bc89-fc8f291f9818","code":"BPM-2","name":"Интервью с сотрудниками (Tier-1 / Tier-2)","track_class":"BPM","domain":"Research","description":"Глубинные интервью с сотрудниками разных уровней. Tier-1: руководители/CEO, Tier-2: операционные сотрудники. Выявление орг. проблем и противоречий","management_goal":"Выявление внутренних проблем, бутылочных горлышек и точек роста","key_outputs":"Материалы интервью, карта орг. проблем, таблица противоречий, SCQA, SI-3","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"b402c21a-77b8-4bb4-9547-0b736d2f071c","code":"BPM-3","name":"Интервью с клиентами и неклиентами","track_class":"BPM","domain":"Research","description":"Глубинное изучение мотивов выбора/невыбора продуктов через интервью с клиентами, бывшими клиентами, клиентами конкурентов. Модели: MEDDPICC, Bain Pyramid, CJM","management_goal":"Выявление драйверов и барьеров покупки, процессов принятия решений","key_outputs":"Репорты интервью, таблица драйверов/барьеров, матрица CL vs NCL, SI4A-SI6","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c44c13e2-93a3-4ed2-888b-4693faae402f","code":"BPM-4","name":"Анализ БД и Формула прибыли","track_class":"BPM","domain":"Analytics","description":"Полный цикл анализа клиентских и транзакционных данных. Построение Формулы прибыли, выявление рычагов РВИД. RFM-сегментация, когортный анализ","management_goal":"Построение аналитической модели бизнеса и выявление рычагов роста","key_outputs":"Формула прибыли, набор графиков, интерпретация, SI-0, SI-1B, SI-7, SI-8, SI-9","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"7d70bba1-7785-48bb-9308-b595d040e39f","code":"BPM-5","name":"Тайный покупатель (Secret Shopping)","track_class":"BPM","domain":"Research","description":"Проверка качества работы через скрытые визиты/обращения. Три подвида: B2B (5a), B2C офлайн (5b), Digital (5c)","management_goal":"Объективная оценка качества обслуживания и процессов продаж","key_outputs":"Чек-листы, оценки, отчёт mystery shopping, рекомендации","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"d036386e-60de-4dd0-bbed-ea15c165f8c0","code":"BPM-6","name":"Кабинетный анализ (Desk Research)","track_class":"BPM","domain":"Research","description":"Вторичное исследование рынка, конкурентов и индустрии. Анализ открытых данных, публичных отчетов, сайтов конкурентов, отраслевых рейтингов","management_goal":"Формирование внешнего контекста для стратегических решений","key_outputs":"Аналитический отчет, конкурентные позиции, тренды рынка, гипотезы","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"a9d6b4d3-67bb-414f-9f1e-041b3371377f","code":"BPM-7","name":"Анализ рынка (Market-sizing)","track_class":"BPM","domain":"Analytics","description":"Оценка размера рынка PAM/TAM/SAM/SOM (7A) и анализ по продуктам/отраслям/регионам с Porter-like моделью (7B)","management_goal":"Определение потенциала роста и приоритетных сегментов","key_outputs":"Расчёт PAM/TAM/SAM/SOM, карта сегментов, Porter 5 forces, привлекательность сегментов","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c6bb9955-37a5-48bb-aaee-e2e39c7d0afd","code":"BPM-8","name":"Анализ бизнес-процессов","track_class":"BPM","domain":"Process","description":"Картирование и анализ операционных процессов. Методологии: SIPOC (уровень 1), IDEF0 (уровень 2), BPMN (уровень 3+). Выявление узких мест и возможностей оптимизации","management_goal":"Выявление неэффективностей и точек оптимизации в текущих процессах","key_outputs":"Диаграммы процессов (SIPOC/IDEF0/BPMN), узкие места, гипотезы оптимизации","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"5b8257bb-6b45-4a8e-b907-f2fa871e560c","code":"BPM-9","name":"Анализ компетенций сотрудников","track_class":"BPM","domain":"HR","description":"Оценка компетенций команды, выявление разрывов. Методы: PAEI, OCA. Анализ потребностей в обучении и развитии","management_goal":"Выявление управленческих проблем на уровне людей и компетенций","key_outputs":"Матрица компетенций, карта разрывов, рекомендации по развитию и найму","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"87fe48d6-73f0-4d15-9b45-5116abd2059c","code":"BPM-10","name":"Анализ CRM","track_class":"BPM","domain":"Sales","description":"Анализ системы управления отношениями с клиентами. Оценка качества данных в CRM, анализ воронки продаж, интеграция стратегического и операционного планирования","management_goal":"Оптимизация процессов продаж и работы с клиентами","key_outputs":"Рекомендации по CRM, оптимизация воронки, модели управления","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"4180d497-ef4a-4db9-8329-156de9a38f3f","code":"BPM-11","name":"Анализ ЦМД (целевая модель данных)","track_class":"BPM","domain":"Data","description":"Проектирование и анализ структуры данных. Определение ключевых сущностей, связей, справочников и правил нормализации. Выделен в отдельный процесс в 2026","management_goal":"Обеспечение готовности данных для аналитики и управления","key_outputs":"Схема ЦМД, рекомендации по настройке данных, готовность к аналитике","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c8b9b4fc-3074-42de-96b2-781b5c63764a","code":"BPA-1","name":"Сборка презентации (Slide Intent)","track_class":"BPA","domain":null,"parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"204bf2ac-ba00-48cc-bcb4-06157be26f54","code":"BPI-CHANGE","name":"Управление изменениями","track_class":"BPI","domain":"Change","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"047d9775-83d5-4c9e-aef6-a5e45148aebb","code":"BPI-COMM","name":"Коммуникации","track_class":"BPI","domain":"Communication","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"03382a57-df21-49a0-aab6-7a22c23a6815","code":"BPI-DATA","name":"Данные","track_class":"BPI","domain":"Data","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"6e3ac828-52ea-4a62-aeaf-0d55218cdcd6","code":"BPI-HR","name":"Люди и компетенции","track_class":"BPI","domain":"HR","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"dd71c292-5d7f-415a-b373-c73f0cf86304","code":"BPI-IT","name":"ИТ-системы","track_class":"BPI","domain":"IT","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"bd58582e-b3b3-41a8-8cc8-022bbae65c4f","code":"BPI-KPI","name":"Метрики и KPI","track_class":"BPI","domain":"Metrics","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"cca3394e-85df-4c4a-a22d-0eb89b9e3df4","code":"BPI-ORG","name":"Оргструктура","track_class":"BPI","domain":"Organization","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"b37f3898-24c8-4790-af99-9a40fa659523","code":"BPI-PILOT","name":"Пилотирование","track_class":"BPI","domain":"Pilot","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"17686adf-f1fb-4d51-b334-4a0d6140f4ac","code":"BPI-PROC","name":"Процессы","track_class":"BPI","domain":"Process","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"1d1e3022-b098-4a23-bc94-b99b7e4d9a1c","code":"BPI-RISK","name":"Риски","track_class":"BPI","domain":"Risk","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"1109689b-a4ce-45bb-9a7c-88b64e46b1a9","code":"BPI-TRAIN","name":"Обучение","track_class":"BPI","domain":"Training","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"35bcf228-ce22-4bc9-bedb-6ebfe2a419e9","code":"BPO-1","name":"Передача методологии","track_class":"BPO","domain":null,"parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1}],"fullKitComponents":[{"id":"c0407fe0-41d6-4493-95fe-91e5a4d92cc4","code":"FK-01","name":"Устав проекта","description":null,"is_mandatory":1},{"id":"dea637f1-be08-445f-8b22-d4d062d6d44d","code":"FK-02","name":"Карта стейкхолдеров","description":null,"is_mandatory":1},{"id":"6f06143a-b607-4e4f-a814-1c1e4c554420","code":"FK-03","name":"Периметр (scope)","description":null,"is_mandatory":1},{"id":"fc7a7ec4-73eb-4413-8e86-871dc5120d40","code":"FK-04","name":"Административная шкала","description":null,"is_mandatory":1},{"id":"74ac37bc-2031-48f4-aa3c-627eec36440d","code":"FK-05","name":"Дорожная карта","description":null,"is_mandatory":1},{"id":"a6a8ff57-379d-4c1c-b6c8-09a4dbe13306","code":"FK-06","name":"Бюджет и ресурсный план","description":null,"is_mandatory":1},{"id":"086dc0d2-d154-42e0-a42a-acdce35b706d","code":"FK-07","name":"Матрица рисков","description":null,"is_mandatory":0},{"id":"05aaa548-d7f3-4f42-93ae-9f34e1bac164","code":"FK-08","name":"Коммуникационный план","description":null,"is_mandatory":0},{"id":"b7bfe079-f9dd-49fa-921a-514929dba7d7","code":"FK-09","name":"Финансовая модель","description":null,"is_mandatory":1},{"id":"3ac7e1bd-5056-45bf-ab6f-260eb63531ad","code":"FK-10","name":"Гипотезы и ожидания","description":null,"is_mandatory":0}],"processRules":[{"id":"472c848d-6d02-4996-bf61-ee3e4fb6ea6d","code":"RULE-GATE-INIT-PLAN","name":"Gate INIT→PLAN","rule_type":"STAGE_GATE","scope":"STAGE","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"Все обязательные критерии должны быть выполнены","is_active":1},{"id":"c625beb5-1420-4cbb-a6fa-615583d6c3dd","code":"RULE-SLA-INIT","name":"SLA для INIT","rule_type":"SLA","scope":"STAGE","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"INIT ≤7 дней target, 10-12 yellow, >12 red/defect","is_active":1},{"id":"1ed7e240-5148-411c-969c-6b1a493bc249","code":"RULE-ADMIN-REVIEW","name":"Ревизия AdminScale","rule_type":"TRACK_SELECTION","scope":"PROJECT","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"При получении выводов BPM-5 пересмотреть AdminScale","is_active":1}],"knowledgeItems":[],"tags":[],"projectTypes":["Consulting","Old Delivery","New Delivery","Стратсессия","Марстрат","HR","Аудит","Ритейл Аудит","Экспресс-проект"],"recommendations":[{"id":"90d6e1ac-62c9-4011-a2fd-a1b6954f8679","category":"data","title":"Заполнение данных сотрудников","description":"23 сотрудника в системе не имеют заполненных зарплатных показателей и департаментов. Необходимо заполнить salary_monthly и department для корректного расчёта себестоимости проектов и ставки в час.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"d8d56dba-4946-4043-8d9f-a8b31ed54ec3","category":"finance","title":"Установка стоимостей контрактов для 27 проектов","description":"27 из 36 проектов (75%) не имеют установленной стоимости контракта (total_contract_value). Без этого невозможен расчёт маржинальности, P&L и контроль рентабельности портфеля.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"66d8c78e-e63b-42cc-a834-b8fc8711f1d9","category":"data","title":"Внедрение учёта рабочего времени","description":"В системе 0 записей timeEntries и 0 записей weekly_timesheets. При 36 активных проектах невозможно рассчитать фактическую себестоимость без данных о трудозатратах.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"b1321da3-ef7e-4b2b-b850-8833f9cedd5f","category":"finance","title":"Настройка налоговых режимов и накладных расходов","description":"Ни один проект не имеет установленного tax_rate и overheads. Для расчёта грязной и чистой рентабельности укажите режим (0%/11%/22%) и накладные расходы для 9 проектов с выручкой.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"b5875c5a-8598-4865-b0b5-895974969ba3","category":"process","title":"Настройка дат и зависимостей треков","description":"Треки проектов не имеют start_date/end_date — диаграмма Ганта и критическая цепь невозможны. Начните с 5 ключевых проектов и задайте даты по каждому BPM-треку.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"8bad418c-7f99-40d2-a46a-9c455c8a8971","category":"mgmt","title":"Привязка сотрудников к проектам","description":"23 сотрудника (10xC1, 3xC2, 4xC3, 3xC4, 3xC5) не распределены по проектам. Без назначений невозможен контроль загрузки, utilization rate и ёмкость триажа.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"8baa5c87-c3ba-4baf-90ca-de9af3ada774","category":"team","title":"Распределение сотрудников по департаментам","description":"Оргструктура содержит 7 департаментов, но сотрудники не привязаны. Это влияет на расчёт ФОТ Производства и ёмкость триажа. Распределите всех 23 сотрудников.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"}],"kb_budget":[],"overhead_registry":[],"users":[]};</script>
+<script>window.SEED={"projects":[],"clients":[],"persons":[],"phaseTemplates":[{"id":"b17c2387-c3c9-417f-8d24-6132bcc9c0ed","code":"MINING","name":"Добыча (Mining)","track_class":"BPM","order_num":1,"description":null},{"id":"e29020b0-15fb-42ac-80e2-496789235617","code":"ASSEMBLING","name":"Сборка (Assembling)","track_class":"BPA","order_num":2,"description":null},{"id":"5ccd60c8-0936-4bd6-b097-d21438d4745c","code":"IMPLEMENTATION","name":"Внедрение (Implementation)","track_class":"BPI","order_num":3,"description":null},{"id":"aa09c47e-05df-43f3-8826-3e0a98e73f85","code":"ORGANIZATION","name":"Организация (Organization)","track_class":"BPO","order_num":4,"description":null}],"stageTemplates":[{"id":"43e3f9dc-b2ce-4ab0-b473-c0db09aee707","code":"INIT","name":"Инициация","order_num":1},{"id":"0cbc045f-0caf-463d-8120-262f8c8f3f82","code":"PLAN","name":"Планирование","order_num":2},{"id":"d235da38-e4cf-4b7c-8e53-09a58cd35a07","code":"EXEC","name":"Исполнение","order_num":3},{"id":"eaf5b765-e620-4887-83d3-a9f721ab74d6","code":"MON","name":"Мониторинг","order_num":4},{"id":"7bf2edd2-921f-47dc-a2eb-fc9d2c08681f","code":"CLOSE","name":"Закрытие","order_num":5}],"trackTemplates":[{"id":"a2db9985-3650-492a-b5ca-2c0a2517f268","code":"BPM-1","name":"Опросы и интерпретация","track_class":"BPM","domain":"Research","description":"Количественное исследование ЦА через структурированные анкеты и опросы. Выходы: анкеты, массивы данных, интерпретационные таблицы","management_goal":"Валидация гипотез через количественные данные","key_outputs":"Анкеты, массивы опросных данных, интерпретационные таблицы","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"cba34c91-7c8b-4727-bc89-fc8f291f9818","code":"BPM-2","name":"Интервью с сотрудниками (Tier-1 / Tier-2)","track_class":"BPM","domain":"Research","description":"Глубинные интервью с сотрудниками разных уровней. Tier-1: руководители/CEO, Tier-2: операционные сотрудники. Выявление орг. проблем и противоречий","management_goal":"Выявление внутренних проблем, бутылочных горлышек и точек роста","key_outputs":"Материалы интервью, карта орг. проблем, таблица противоречий, SCQA, SI-3","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"b402c21a-77b8-4bb4-9547-0b736d2f071c","code":"BPM-3","name":"Интервью с клиентами и неклиентами","track_class":"BPM","domain":"Research","description":"Глубинное изучение мотивов выбора/невыбора продуктов через интервью с клиентами, бывшими клиентами, клиентами конкурентов. Модели: MEDDPICC, Bain Pyramid, CJM","management_goal":"Выявление драйверов и барьеров покупки, процессов принятия решений","key_outputs":"Репорты интервью, таблица драйверов/барьеров, матрица CL vs NCL, SI4A-SI6","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c44c13e2-93a3-4ed2-888b-4693faae402f","code":"BPM-4","name":"Анализ БД и Формула прибыли","track_class":"BPM","domain":"Analytics","description":"Полный цикл анализа клиентских и транзакционных данных. Построение Формулы прибыли, выявление рычагов РВИД. RFM-сегментация, когортный анализ","management_goal":"Построение аналитической модели бизнеса и выявление рычагов роста","key_outputs":"Формула прибыли, набор графиков, интерпретация, SI-0, SI-1B, SI-7, SI-8, SI-9","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"7d70bba1-7785-48bb-9308-b595d040e39f","code":"BPM-5","name":"Тайный покупатель (Secret Shopping)","track_class":"BPM","domain":"Research","description":"Проверка качества работы через скрытые визиты/обращения. Три подвида: B2B (5a), B2C офлайн (5b), Digital (5c)","management_goal":"Объективная оценка качества обслуживания и процессов продаж","key_outputs":"Чек-листы, оценки, отчёт mystery shopping, рекомендации","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"d036386e-60de-4dd0-bbed-ea15c165f8c0","code":"BPM-6","name":"Кабинетный анализ (Desk Research)","track_class":"BPM","domain":"Research","description":"Вторичное исследование рынка, конкурентов и индустрии. Анализ открытых данных, публичных отчетов, сайтов конкурентов, отраслевых рейтингов","management_goal":"Формирование внешнего контекста для стратегических решений","key_outputs":"Аналитический отчет, конкурентные позиции, тренды рынка, гипотезы","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"a9d6b4d3-67bb-414f-9f1e-041b3371377f","code":"BPM-7","name":"Анализ рынка (Market-sizing)","track_class":"BPM","domain":"Analytics","description":"Оценка размера рынка PAM/TAM/SAM/SOM (7A) и анализ по продуктам/отраслям/регионам с Porter-like моделью (7B)","management_goal":"Определение потенциала роста и приоритетных сегментов","key_outputs":"Расчёт PAM/TAM/SAM/SOM, карта сегментов, Porter 5 forces, привлекательность сегментов","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c6bb9955-37a5-48bb-aaee-e2e39c7d0afd","code":"BPM-8","name":"Анализ бизнес-процессов","track_class":"BPM","domain":"Process","description":"Картирование и анализ операционных процессов. Методологии: SIPOC (уровень 1), IDEF0 (уровень 2), BPMN (уровень 3+). Выявление узких мест и возможностей оптимизации","management_goal":"Выявление неэффективностей и точек оптимизации в текущих процессах","key_outputs":"Диаграммы процессов (SIPOC/IDEF0/BPMN), узкие места, гипотезы оптимизации","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"5b8257bb-6b45-4a8e-b907-f2fa871e560c","code":"BPM-9","name":"Анализ компетенций сотрудников","track_class":"BPM","domain":"HR","description":"Оценка компетенций команды, выявление разрывов. Методы: PAEI, OCA. Анализ потребностей в обучении и развитии","management_goal":"Выявление управленческих проблем на уровне людей и компетенций","key_outputs":"Матрица компетенций, карта разрывов, рекомендации по развитию и найму","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"87fe48d6-73f0-4d15-9b45-5116abd2059c","code":"BPM-10","name":"Анализ CRM","track_class":"BPM","domain":"Sales","description":"Анализ системы управления отношениями с клиентами. Оценка качества данных в CRM, анализ воронки продаж, интеграция стратегического и операционного планирования","management_goal":"Оптимизация процессов продаж и работы с клиентами","key_outputs":"Рекомендации по CRM, оптимизация воронки, модели управления","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"4180d497-ef4a-4db9-8329-156de9a38f3f","code":"BPM-11","name":"Анализ ЦМД (целевая модель данных)","track_class":"BPM","domain":"Data","description":"Проектирование и анализ структуры данных. Определение ключевых сущностей, связей, справочников и правил нормализации. Выделен в отдельный процесс в 2026","management_goal":"Обеспечение готовности данных для аналитики и управления","key_outputs":"Схема ЦМД, рекомендации по настройке данных, готовность к аналитике","is_active":1,"parent_track_id":null,"required_models":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":""},{"id":"c8b9b4fc-3074-42de-96b2-781b5c63764a","code":"BPA-1","name":"Сборка презентации (Slide Intent)","track_class":"BPA","domain":null,"parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"204bf2ac-ba00-48cc-bcb4-06157be26f54","code":"BPI-CHANGE","name":"Управление изменениями","track_class":"BPI","domain":"Change","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"047d9775-83d5-4c9e-aef6-a5e45148aebb","code":"BPI-COMM","name":"Коммуникации","track_class":"BPI","domain":"Communication","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"03382a57-df21-49a0-aab6-7a22c23a6815","code":"BPI-DATA","name":"Данные","track_class":"BPI","domain":"Data","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"6e3ac828-52ea-4a62-aeaf-0d55218cdcd6","code":"BPI-HR","name":"Люди и компетенции","track_class":"BPI","domain":"HR","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"dd71c292-5d7f-415a-b373-c73f0cf86304","code":"BPI-IT","name":"ИТ-системы","track_class":"BPI","domain":"IT","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"bd58582e-b3b3-41a8-8cc8-022bbae65c4f","code":"BPI-KPI","name":"Метрики и KPI","track_class":"BPI","domain":"Metrics","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"cca3394e-85df-4c4a-a22d-0eb89b9e3df4","code":"BPI-ORG","name":"Оргструктура","track_class":"BPI","domain":"Organization","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"b37f3898-24c8-4790-af99-9a40fa659523","code":"BPI-PILOT","name":"Пилотирование","track_class":"BPI","domain":"Pilot","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"17686adf-f1fb-4d51-b334-4a0d6140f4ac","code":"BPI-PROC","name":"Процессы","track_class":"BPI","domain":"Process","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"1d1e3022-b098-4a23-bc94-b99b7e4d9a1c","code":"BPI-RISK","name":"Риски","track_class":"BPI","domain":"Risk","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"1109689b-a4ce-45bb-9a7c-88b64e46b1a9","code":"BPI-TRAIN","name":"Обучение","track_class":"BPI","domain":"Training","parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1},{"id":"35bcf228-ce22-4bc9-bedb-6ebfe2a419e9","code":"BPO-1","name":"Передача методологии","track_class":"BPO","domain":null,"parent_track_id":null,"management_goal":null,"required_models":"","key_outputs":"","qc_mechanism":null,"reuse_artifacts":null,"si_references":"","description":null,"is_active":1}],"fullKitComponents":[{"id":"c0407fe0-41d6-4493-95fe-91e5a4d92cc4","code":"FK-01","name":"Устав проекта","description":null,"is_mandatory":1},{"id":"dea637f1-be08-445f-8b22-d4d062d6d44d","code":"FK-02","name":"Карта стейкхолдеров","description":null,"is_mandatory":1},{"id":"6f06143a-b607-4e4f-a814-1c1e4c554420","code":"FK-03","name":"Периметр (scope)","description":null,"is_mandatory":1},{"id":"fc7a7ec4-73eb-4413-8e86-871dc5120d40","code":"FK-04","name":"Административная шкала","description":null,"is_mandatory":1},{"id":"74ac37bc-2031-48f4-aa3c-627eec36440d","code":"FK-05","name":"Дорожная карта","description":null,"is_mandatory":1},{"id":"a6a8ff57-379d-4c1c-b6c8-09a4dbe13306","code":"FK-06","name":"Бюджет и ресурсный план","description":null,"is_mandatory":1},{"id":"086dc0d2-d154-42e0-a42a-acdce35b706d","code":"FK-07","name":"Матрица рисков","description":null,"is_mandatory":0},{"id":"05aaa548-d7f3-4f42-93ae-9f34e1bac164","code":"FK-08","name":"Коммуникационный план","description":null,"is_mandatory":0},{"id":"b7bfe079-f9dd-49fa-921a-514929dba7d7","code":"FK-09","name":"Финансовая модель","description":null,"is_mandatory":1},{"id":"3ac7e1bd-5056-45bf-ab6f-260eb63531ad","code":"FK-10","name":"Гипотезы и ожидания","description":null,"is_mandatory":0}],"processRules":[{"id":"472c848d-6d02-4996-bf61-ee3e4fb6ea6d","code":"RULE-GATE-INIT-PLAN","name":"Gate INIT→PLAN","rule_type":"STAGE_GATE","scope":"STAGE","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"Все обязательные критерии должны быть выполнены","is_active":1},{"id":"c625beb5-1420-4cbb-a6fa-615583d6c3dd","code":"RULE-SLA-INIT","name":"SLA для INIT","rule_type":"SLA","scope":"STAGE","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"INIT ≤7 дней target, 10-12 yellow, >12 red/defect","is_active":1},{"id":"1ed7e240-5148-411c-969c-6b1a493bc249","code":"RULE-ADMIN-REVIEW","name":"Ревизия AdminScale","rule_type":"TRACK_SELECTION","scope":"PROJECT","applicable_phase":null,"applicable_stage":null,"conditions":null,"actions":null,"default_parameters":null,"description":"При получении выводов BPM-5 пересмотреть AdminScale","is_active":1}],"knowledgeItems":[],"tags":[],"projectTypes":["Consulting","Old Delivery","New Delivery","Стратсессия","Марстрат","HR","Аудит","Ритейл Аудит","Экспресс-проект"],"recommendations":[{"id":"90d6e1ac-62c9-4011-a2fd-a1b6954f8679","category":"data","title":"Заполнение данных сотрудников","description":"23 сотрудника в системе не имеют заполненных зарплатных показателей и департаментов. Необходимо заполнить salary_monthly и department для корректного расчёта себестоимости проектов и ставки в час.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"d8d56dba-4946-4043-8d9f-a8b31ed54ec3","category":"finance","title":"Установка стоимостей контрактов для 27 проектов","description":"27 из 36 проектов (75%) не имеют установленной стоимости контракта (total_contract_value). Без этого невозможен расчёт маржинальности, P&L и контроль рентабельности портфеля.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"66d8c78e-e63b-42cc-a834-b8fc8711f1d9","category":"data","title":"Внедрение учёта рабочего времени","description":"В системе 0 записей timeEntries и 0 записей weekly_timesheets. При 36 активных проектах невозможно рассчитать фактическую себестоимость без данных о трудозатратах.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"b1321da3-ef7e-4b2b-b850-8833f9cedd5f","category":"finance","title":"Настройка налоговых режимов и накладных расходов","description":"Ни один проект не имеет установленного tax_rate и overheads. Для расчёта грязной и чистой рентабельности укажите режим (0%/11%/22%) и накладные расходы для 9 проектов с выручкой.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"b5875c5a-8598-4865-b0b5-895974969ba3","category":"process","title":"Настройка дат и зависимостей треков","description":"Треки проектов не имеют start_date/end_date — диаграмма Ганта и критическая цепь невозможны. Начните с 5 ключевых проектов и задайте даты по каждому BPM-треку.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"8bad418c-7f99-40d2-a46a-9c455c8a8971","category":"mgmt","title":"Привязка сотрудников к проектам","description":"23 сотрудника (10xC1, 3xC2, 4xC3, 3xC4, 3xC5) не распределены по проектам. Без назначений невозможен контроль загрузки, utilization rate и ёмкость триажа.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"},{"id":"8baa5c87-c3ba-4baf-90ca-de9af3ada774","category":"team","title":"Распределение сотрудников по департаментам","description":"Оргструктура содержит 7 департаментов, но сотрудники не привязаны. Это влияет на расчёт ФОТ Производства и ёмкость триажа. Распределите всех 23 сотрудников.","status":"backlog","created_at":"2026-02-12T15:17:19.637Z","batch_id":"2e6f0f36-d540-4b73-87d3-28b6ec409b5e"}],"kb_budget":[],"overhead_registry":[],"users":[],"notifications":[]};</script>
 <!-- SEED patches removed: data now lives only in Supabase -->
 <script>
 window.onerror=function(msg,url,line,col,err){
@@ -1748,60 +1748,76 @@ function useStore(){
   const _sbSkipSave=useRef(false);
 
   /* Helper: compute data richness score */
-  const _dataScore=(d)=>{if(!d||typeof d!=='object')return 0;return (d.projects||[]).length*10+(d.clients||[]).length*5+(d.persons||[]).length*3+(d.projects||[]).reduce((s,p)=>(s+(p.payments||[]).length*2+(p.tasks||[]).length+(p.phases||[]).length+(p.project_overheads||[]).length*2+(p.time_entries||[]).length*2+(p.overheads||[]).length+(p.timeEntries||[]).length),0);};
+  const _dataScore=(d)=>{if(!d||typeof d!=='object')return 0;return (d.projects||[]).length*10+(d.clients||[]).length*5+(d.persons||[]).length*3+(d.kb_budget||[]).length*4+(d.pnl_overrides||[]).length*3+(d.crm_deals||[]).length*3+(d.overhead_registry||[]).length*2+(d.users||[]).length*2+(d.projects||[]).reduce((s,p)=>(s+(p.payments||[]).length*2+(p.tasks||[]).length+(p.phases||[]).length+(p.project_overheads||[]).length*2+(p.time_entries||[]).length*2+(p.overheads||[]).length+(p.timeEntries||[]).length),0);};
 
-  /* Load from Supabase on start — SMART MERGE: prefer richer dataset */
+  /* === SYNC MODE: online = master (read+write Supabase), localhost = slave (read-only from Supabase) === */
+  const _isLocalhost=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1';
+  const _syncMode=_isLocalhost?'slave':'master';
+
+  /* Load from Supabase on start */
   useEffect(()=>{
     if(!_sb){setSbStatus('offline');setSbLoaded(true);return;}
     setSbStatus('loading');
+    console.log('[Sync] Mode: '+_syncMode+' ('+window.location.hostname+')');
     _sb.from('app_data').select('payload').eq('id',1).single()
       .then(({data:row,error})=>{
         if(!error&&row&&row.payload&&typeof row.payload==='object'&&Object.keys(row.payload).length>0){
           const sbData=_sanitize(row.payload);
           const lsScore=_dataScore(data);
           const sbScore=_dataScore(sbData);
-          console.log('[Sync] localStorage score='+lsScore+' ('+((data.projects||[]).length)+' projects), Supabase score='+sbScore+' ('+((sbData.projects||[]).length)+' projects)');
-          const sbProjects=(sbData.projects||[]).length;
-          const lsProjects=(data.projects||[]).length;
+          console.log('[Sync] localStorage score='+lsScore+', Supabase score='+sbScore);
           /* AUTO-BACKUP before any overwrite */
           try{const bk='pp_backup_'+new Date().toISOString().slice(0,19).replace(/:/g,'-');localStorage.setItem(bk,JSON.stringify(data));console.log('[Sync] Backup saved:',bk);}catch(e){}
-          if(sbScore>lsScore){
-            /* Supabase richer — use it (normal case) */
-            _sbSkipSave.current=true;
-            setData(prev=>({...sbData}));
-            setTimeout(()=>{_sbSkipSave.current=false;},500);
-            console.log('[Sync] Using Supabase data (richer)');
-          } else if(lsScore>sbScore&&lsProjects<=5&&sbProjects>10){
-            /* PROTECTION: localStorage looks like SEED (few projects), Supabase has real data */
-            console.warn('[Sync] PROTECTION: localStorage looks like empty SEED ('+lsProjects+' projects), Supabase has '+sbProjects+' — using Supabase');
-            _sbSkipSave.current=true;
-            setData(prev=>({...sbData}));
-            setTimeout(()=>{_sbSkipSave.current=false;},500);
-          } else if(lsScore>sbScore){
-            /* localStorage richer AND has real data — keep it, push to Supabase */
-            console.log('[Sync] Keeping localStorage data (richer with '+lsProjects+' projects), will push to Supabase');
+
+          if(_syncMode==='slave'){
+            /* LOCALHOST (slave): always take Supabase data — this is the production truth */
+            if(sbScore>0){
+              _sbSkipSave.current=true;
+              setData(prev=>({...sbData}));
+              setTimeout(()=>{_sbSkipSave.current=false;},500);
+              console.log('[Sync/Slave] Loaded production data from Supabase (score='+sbScore+')');
+            } else {
+              console.log('[Sync/Slave] Supabase empty, using localStorage');
+            }
           } else {
-            console.log('[Sync] Equal scores, keeping localStorage data');
+            /* ONLINE (master): smart merge, prefer richer source */
+            const sbProjects=(sbData.projects||[]).length;
+            const lsProjects=(data.projects||[]).length;
+            if(sbScore>lsScore){
+              _sbSkipSave.current=true;
+              setData(prev=>({...sbData}));
+              setTimeout(()=>{_sbSkipSave.current=false;},500);
+              console.log('[Sync/Master] Using Supabase data (richer)');
+            } else if(lsScore>sbScore&&lsProjects<=5&&sbProjects>10){
+              console.warn('[Sync/Master] PROTECTION: localStorage looks empty, using Supabase');
+              _sbSkipSave.current=true;
+              setData(prev=>({...sbData}));
+              setTimeout(()=>{_sbSkipSave.current=false;},500);
+            } else {
+              console.log('[Sync/Master] Keeping localStorage data (score='+lsScore+'), will push to Supabase');
+            }
           }
           setSbStatus('online');
         } else if(error){
           console.warn('Supabase load error:',error);
           setSbStatus('error');
         } else {
-          /* empty DB — push current localStorage data to Supabase */
-          console.log('[Sync] Supabase empty, will push localStorage data');
+          console.log('[Sync] Supabase empty'+ (_syncMode==='master'?', will push localStorage data':' — nothing to load'));
           setSbStatus('online');
         }
         setSbLoaded(true);
       }).catch(e=>{console.warn('Supabase fetch failed:',e);setSbStatus('error');setSbLoaded(true);});
   },[]);
 
-  /* Save: localStorage immediately + Supabase with debounce */
+  /* Save: localStorage always + Supabase only in master mode (online) */
   useEffect(()=>{
     try{localStorage.setItem(LS_KEY,JSON.stringify(data));}catch(e){console.warn('LS save error',e);}
+    /* Slave (localhost) NEVER writes to Supabase */
+    if(_syncMode==='slave')return;
     if(!_sb||!sbLoaded||_sbSkipSave.current)return;
     /* PROTECTION: don't push empty/SEED data to Supabase */
-    if((data.projects||[]).length<=5){console.warn('[Save] Skipping Supabase save — data looks like SEED (',((data.projects||[]).length),' projects)');return;}
+    const _saveScore=_dataScore(data);
+    if(_saveScore<50){console.warn('[Save] Skipping Supabase save — data looks like SEED (score='+_saveScore+')');return;}
     clearTimeout(_sbTimer.current);
     setSbStatus('saving');
     _sbTimer.current=setTimeout(()=>{
@@ -2139,6 +2155,143 @@ function useStore(){
     /* Rule 14: DISABLED auto-clear — now manual only via clearOverheadRegistry() */
     if((data.overhead_registry||[]).length>0){
       console.log('[Migration Rule 14] overhead_registry has '+data.overhead_registry.length+' entries (auto-clear DISABLED, use manual button if needed)');
+    }
+    /* Rule 16: Sync 85 active projects from Notion CSV (run once) */
+    if(!localStorage.getItem('pp_rule16_done')){
+      const _CSV=[{n:'075G',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Abis / АБИС',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'BI.Zone. Исследование',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'CosySoft / КозиСофт',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Expert',rg:'РГ2',t:'Old Delivery',seg:'2'},{n:'Olso/ Олсо',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Skillspace / СкиллСпейс',rg:'РГ2',t:'Old Delivery',seg:'2'},{n:'А-Икра',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Абрау-Дюрсо',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Авалон-П',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Авантпак',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'АДГ',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Азбука вкуса HR',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Айпол',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Аконит',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Альфамедэкс',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'АНД Азия (абонентка)',rg:'РГ1',t:'New Delivery',seg:'3'},{n:'Арвад',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Аргон',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Аюна',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Белый кролик',rg:'РГ2',t:'Old Delivery',seg:'4'},{n:'Бифиформ',rg:'РГ2',t:'Old Delivery',seg:'2'},{n:'Бонум',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'БП Модули',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Бургер Кинг / Burger King',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Вастэко',rg:'РГ1',t:'Old Delivery',seg:'3'},{n:'Вастэко (иссл)',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Венеция 2.0',rg:'РГ1',t:'Old Delivery',seg:'3'},{n:'ВУУ (абонентка)',rg:'РГ1',t:'New Delivery',seg:'3'},{n:'Глобал Имплант',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'ГриГри',rg:'РГ1',t:'Old Delivery',seg:'3'},{n:'Деафон',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Дзорт',rg:'РГ2',t:'New Delivery',seg:'3'},{n:'Евразия Групп (ФЦК)',rg:'РГ1',t:'Old Delivery',seg:'3'},{n:'ИЗТТ. CJM',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Квант',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Клиника Епифанова',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Кронус. Оргструктура',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Латитудо',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'ЛСБР',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Медицинский центр 21 век',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Микрос',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Минстрой. Модель оценки',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'МИС',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Мореавто',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Мореавто (дашборд)',rg:'РГ1',t:'Old Delivery',seg:'2'},{n:'МРТ Центр',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'НИЦ',rg:'РГ2',t:'New Delivery',seg:'1'},{n:'ОЗЭУ',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Олжас / AgroInn',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Охана',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Парк Птиц',rg:'РГ2',t:'Old Delivery',seg:'3'},{n:'Полюс Золото',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Рокада мед. Абонент',rg:'РГ1',t:'New Delivery',seg:'1'},{n:'Ростовский девелопер',rg:'РГ2',t:'Old Delivery',seg:'2'},{n:'РосЭкоПласт ( pro bono )',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Салюс Легал',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Сантерра',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Саргис',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Севенком',rg:'РГ2',t:'Old Delivery',seg:'2'},{n:'Северавто',rg:'РГ1',t:'Old Delivery',seg:'2'},{n:'Серф',rg:'РГ2',t:'Old Delivery',seg:'2'},{n:'СибТехноСтрой',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Симметрия',rg:'РГ1',t:'Old Delivery',seg:'3'},{n:'Стецык 2 (марк. страт + лендинги)',rg:'РГ2',t:'Old Delivery',seg:'2'},{n:'Текос (исследование)',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Текстильнова (дашборд)',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Теплопоток (абонентка)',rg:'РГ1',t:'New Delivery',seg:'3'},{n:'Термекс. Найм CEO',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Терра HR',rg:'РГ1',t:'Old Delivery',seg:'3'},{n:'Терра. Lean',rg:'РГ1',t:'Old Delivery',seg:'3'},{n:'ТОФС',rg:'РГ2',t:'Old Delivery',seg:'3'},{n:'Транзитсити',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Транскемикл сессия',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Уйде 2.0',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Финго',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Финестра',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Фитнес Формула 2',rg:'РГ2',t:'Old Delivery',seg:'2'},{n:'Фортепьяно',rg:'РГ1',t:'Old Delivery',seg:'2'},{n:'Фудкорт Рейсинг',rg:'РГ2',t:'Old Delivery',seg:'1'},{n:'Х5-Транспорт',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Чароит',rg:'РГ2',t:'Old Delivery',seg:'2'},{n:'Чиббис',rg:'РГ2',t:'Old Delivery',seg:'2'},{n:'Шатим',rg:'РГ1',t:'Old Delivery',seg:'1'},{n:'Шидель',rg:'РГ1',t:'Old Delivery',seg:'2'}];
+      const _norm=s=>(s||'').toLowerCase().replace(/[\s\.\-\/\(\)]+/g,'').trim();
+      const _matchName=(csvN,projN)=>{
+        const cn=_norm(csvN),pn=_norm(projN);
+        if(cn===pn)return 'exact';
+        if((cn.length>=3&&pn.length>=3)&&(cn.includes(pn)||pn.includes(cn)))return 'strong';
+        /* Check slash alternatives */
+        const cParts=csvN.split(/\s*\/\s*/).map(_norm);
+        const pParts=projN.split(/\s*\/\s*/).map(_norm);
+        for(const cp of cParts)for(const pp of pParts){
+          if(cp===pp&&cp.length>=3)return 'strong';
+          if((cp.includes(pp)||pp.includes(cp))&&Math.min(cp.length,pp.length)>=3)return 'medium';
+        }
+        /* First word match */
+        const cw=(csvN.split(/\s/)[0]||'').toLowerCase();
+        const pw=(projN.split(/\s/)[0]||'').toLowerCase();
+        if(cw&&pw&&cw===pw&&cw.length>=3)return 'medium';
+        return null;
+      };
+      /* Ticker generator: transliterate + take first 4 unique chars */
+      const _TR={'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ё':'E','Ж':'ZH','З':'Z','И':'I','Й':'Y','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S','Т':'T','У':'U','Ф':'F','Х':'KH','Ц':'TS','Ч':'CH','Ш':'SH','Щ':'SC','Ъ':'','Ы':'Y','Ь':'','Э':'E','Ю':'YU','Я':'YA'};
+      const _genTicker=(name,usedSet)=>{
+        let clean=(name||'').replace(/\s*\([^)]*\)/g,'').trim();
+        if(clean.includes('/'))clean=clean.split('/')[0].trim();
+        clean=clean.replace(/[.\-\s]+/g,'');
+        let lat='';
+        for(const ch of clean.toUpperCase()){if(_TR[ch])lat+=_TR[ch];else if(/[A-Z0-9]/.test(ch))lat+=ch;}
+        let base=lat.slice(0,4);if(base.length<2)base='PROJ';
+        let code=base;let suf=2;
+        while(usedSet.has(code)&&suf<100){code=base.slice(0,3)+suf;suf++;}
+        usedSet.add(code);return code;
+      };
+      const _usedCodes=new Set(data.projects.map(p=>(p.code||'').toUpperCase()).filter(Boolean));
+      let updated=0,created=0;
+      const projects=[...data.projects];
+      _CSV.forEach(csv=>{
+        let bestMatch=null,bestStrength=null;
+        projects.forEach(p=>{
+          const s=_matchName(csv.n,p.name);
+          if(s&&(!bestStrength||['medium','strong','exact'].indexOf(s)>['medium','strong','exact'].indexOf(bestStrength))){
+            bestMatch=p;bestStrength=s;
+          }
+        });
+        if(bestMatch){
+          /* Update existing project */
+          const upd={};
+          if(csv.t&&bestMatch.project_type!==csv.t)upd.project_type=csv.t;
+          if(csv.rg&&bestMatch.work_group!==csv.rg)upd.work_group=csv.rg;
+          if(Object.keys(upd).length>0){
+            Object.assign(bestMatch,upd);
+            updated++;
+            console.log('[Rule 16] Updated "'+bestMatch.name+'" ('+bestStrength+' match with "'+csv.n+'"): '+JSON.stringify(upd));
+          }
+        } else {
+          /* Create new project */
+          const _code=_genTicker(csv.n,_usedCodes);
+          const newP={
+            id:([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)),
+            code:_code,
+            name:csv.n,
+            project_type:csv.t,
+            work_group:csv.rg,
+            client_id:'',
+            status:'active',
+            country:'Россия',
+            start_date:'',
+            dd_phase:'Explore',
+            total_contract_value:0,
+            tax_rate:0,
+            assignments:[],
+            payments:[],
+            tracks:[],
+            overheads:[],
+            hypothesisBoard:{goals:[],hypotheses:[]},
+            documents:[],
+            competencies:{},
+            admin_scale:{},
+            tasks:[],
+            pnl_notes:'',
+            nd_payment_period:'quarterly',
+            nd_period_cost:0,
+            nd_period_start:'',
+            nd_period_end:'',
+            nd_num_periods:0,
+            nd_has_success_fee:false,
+            nd_success_fee:0,
+            created_at:new Date().toISOString()
+          };
+          projects.push(newP);
+          created++;
+          console.log('[Rule 16] Created new project "'+csv.n+'" ('+csv.t+', '+csv.rg+')');
+        }
+      });
+      /* Also assign codes to any project missing one */
+      let codeFilled=0;
+      projects.forEach(p=>{
+        if(!p.code){
+          p.code=_genTicker(p.name,_usedCodes);
+          codeFilled++;
+          console.log('[Rule 16] Assigned code "'+p.code+'" to "'+p.name+'"');
+        }
+      });
+      if(updated>0||created>0||codeFilled>0){
+        setData(d=>({...d,projects:projects}));
+        console.log('[Migration Rule 16] CSV sync complete: '+updated+' updated, '+created+' created, '+codeFilled+' codes assigned');
+      }
+      localStorage.setItem('pp_rule16_done','1');
+    }
+    /* Rule 17: Always assign codes to any project missing one (idempotent) */
+    {
+      const _TR17={'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ё':'E','Ж':'ZH','З':'Z','И':'I','Й':'Y','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S','Т':'T','У':'U','Ф':'F','Х':'KH','Ц':'TS','Ч':'CH','Ш':'SH','Щ':'SC','Ъ':'','Ы':'Y','Ь':'','Э':'E','Ю':'YU','Я':'YA'};
+      const _genT17=(name,usedSet)=>{
+        let clean=(name||'').replace(/\s*\([^)]*\)/g,'').trim();
+        if(clean.includes('/'))clean=clean.split('/')[0].trim();
+        clean=clean.replace(/[.\-\s]+/g,'');
+        let lat='';
+        for(const ch of clean.toUpperCase()){if(_TR17[ch])lat+=_TR17[ch];else if(/[A-Z0-9]/.test(ch))lat+=ch;}
+        let base=lat.slice(0,4);if(base.length<2)base='PROJ';
+        let code=base;let suf=2;
+        while(usedSet.has(code)&&suf<100){code=base.slice(0,3)+suf;suf++;}
+        usedSet.add(code);return code;
+      };
+      const noCode=data.projects.filter(p=>!p.code);
+      if(noCode.length>0){
+        const used17=new Set(data.projects.map(p=>(p.code||'').toUpperCase()).filter(Boolean));
+        const patchMap={};
+        noCode.forEach(p=>{
+          const c=_genT17(p.name,used17);
+          patchMap[p.id]=c;
+          console.log('[Rule 17] Assigned code "'+c+'" to "'+p.name+'"');
+        });
+        setData(d=>({...d,projects:d.projects.map(p=>patchMap[p.id]?{...p,code:patchMap[p.id]}:p)}));
+        console.log('[Migration Rule 17] Assigned codes to '+noCode.length+' projects');
+      }
     }
   },[]);
 
@@ -3391,12 +3544,28 @@ function useStore(){
   const addChatChannel=(ch)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_channels=[...nd.chat_channels,{id:uuid(),created_at:now(),type:'public',pinned:false,...ch}];return nd;});showToast('Канал создан');};
   const updateChatChannel=(id,upd)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_channels=nd.chat_channels.map(c=>c.id===id?{...c,...upd}:c);return nd;});};
   const deleteChatChannel=(id)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_channels=nd.chat_channels.filter(c=>c.id!==id);nd.chat_messages=nd.chat_messages.filter(m=>m.channel_id!==id);return nd;});showToast('Канал удалён');};
-  const addChatMessage=(msg)=>{const id=uuid();setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=[...nd.chat_messages,{id,created_at:now(),author:nd.chat_current_user,...msg,reactions:[],edited:false}];return nd;});return id;};
+  const addChatMessage=(msg)=>{const id=uuid();const ts=now();setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=[...nd.chat_messages,{id,created_at:ts,author:nd.chat_current_user,...msg,reactions:[],edited:false}];/* Detect @mentions and create notifications */const mentionRx=/@([\w.]+)/g;let mt;const text=msg.text||'';while((mt=mentionRx.exec(text))!==null){const login=mt[1];const targetUser=(nd.users||[]).find(u=>u.login===login&&u.is_active);if(targetUser&&targetUser.id!==nd.chat_current_user?.id){if(!nd.notifications)nd.notifications=[];nd.notifications=[...nd.notifications,{id:uuid(),created_at:ts,read:false,type:'mention',user_id:targetUser.id,user_login:targetUser.login,from_user_id:nd.chat_current_user?.id||'me',from_user_name:nd.chat_current_user?.name||'Аноним',channel_id:msg.channel_id||'',message_id:id,message_text:text.length>120?text.slice(0,120)+'…':text,thread_id:msg.thread_id||null}];}}return nd;});return id;};
   const updateChatMessage=(id,upd)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=nd.chat_messages.map(m=>m.id===id?{...m,...upd,edited:true,edited_at:now()}:m);return nd;});};
   const deleteChatMessage=(id)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=nd.chat_messages.filter(m=>m.id!==id&&m.thread_id!==id);return nd;});};
   const addChatReaction=(msgId,emoji)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=nd.chat_messages.map(m=>{if(m.id!==msgId)return m;const rx=[...(m.reactions||[])];const existing=rx.findIndex(r=>r.emoji===emoji&&r.user_id===nd.chat_current_user.id);if(existing>=0)rx.splice(existing,1);else rx.push({emoji,user_id:nd.chat_current_user.id,user_name:nd.chat_current_user.name});return{...m,reactions:rx};});return nd;});};
   const pinChatMessage=(msgId)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_messages=nd.chat_messages.map(m=>m.id===msgId?{...m,pinned:!m.pinned}:m);return nd;});};
   const setChatUser=(user)=>{setData(d=>({...d,chat_current_user:user}));};
+
+  /* === Notifications === */
+  const addNotification=(notif)=>{
+    const id=uuid();
+    setData(d=>({...d,notifications:[...(d.notifications||[]),{id,created_at:now(),read:false,...notif}]}));
+    return id;
+  };
+  const markNotificationRead=(nId)=>{
+    setData(d=>({...d,notifications:(d.notifications||[]).map(n=>n.id===nId?{...n,read:true}:n)}));
+  };
+  const markAllNotificationsRead=(userId)=>{
+    setData(d=>({...d,notifications:(d.notifications||[]).map(n=>n.user_id===userId?{...n,read:true}:n)}));
+  };
+  const deleteNotification=(nId)=>{
+    setData(d=>({...d,notifications:(d.notifications||[]).filter(n=>n.id!==nId)}));
+  };
 
   const stats=useMemo(()=>({projectCount:data.projects.length,activeCount:data.projects.filter(p=>p.status==='ACTIVE').length,clientCount:data.clients.length,personCount:data.persons.filter(p=>p.is_active).length,taskCount:data.projects.reduce((s,p)=>s+(p.tasks||[]).length,0),blockerCount:data.projects.reduce((s,p)=>s+(p.blockers||[]).filter(b=>!b.resolved_at).length,0)}),[data.projects,data.clients,data.persons]);
 
@@ -3431,7 +3600,7 @@ function useStore(){
     return user;
   };
 
-  return {data,stats,toast,sbStatus,sbLoaded,reconnectSb,hashPwd,addUser,updateUser,deleteUser,resetUserPassword,validateLogin,addClient,addPerson,addProject,updateProject,activateProject,addAssignment,removeAssignment,addTrack,addTask,addBlocker,resolveBlocker,addPayment,markPaymentAccrued,markPaymentPaid,markAllPaymentsPaid,addPnlOverride,deletePnlOverride,addRecommendation,addRecommendationsBatch,updateRecommendationStatus,deleteRecommendation,addOverhead,updateOverhead,removeOverhead,addKbBudgetItem,updateKbBudgetItem,deleteKbBudgetItem,addHrBudgetItem,updateHrBudgetItem,deleteHrBudgetItem,addOhRegistryItem,updateOhRegistryItem,deleteOhRegistryItem,toggleOhRegistryVerified,clearOverheadRegistry,syncOhToProject,syncOhToKbBudget,bulkImportOhRegistry,runFkDoubleCheck,addTimeEntry,updateTimeEntry,deleteTimeEntry,autoScheduleTracks,forceScheduleTracks,addGoal,addSubGoal,deleteSubGoal,addSubject,exportData,updateClient,updatePerson,deletePerson,updateTrackDates,updateTrackStatus,deleteTrack,updateTaskStatus,updateTask,deleteTask,deleteProject,updatePayment,deletePayment,advanceStage,importData,addProjectType,deleteProjectType,addDocument,deleteDocument,updateAdminScale,updatePhaseDoc,addInsight,deleteInsight,linkTrackToSubject,unlinkTrackFromSubject,deleteGoal,deleteSubject,linkTrackToInsight,unlinkTrackFromInsight,addTrackDep,removeTrackDep,upsertWeeklyHours,deleteWeeklyHours,lockProject,unlockProject,earlyCompleteProject,addCrmDeal,updateCrmDeal,deleteCrmDeal,addIcfDeal,updateIcfDeal,deleteIcfDeal,bulkImportIcfDeals,toggleNonStudent,getMetricsMap,setMetricsMap,updateMetricsNode,addMetricsNode,deleteMetricsNode,addMetricsLink,deleteMetricsLink,addStagingDeal,updateStagingDeal,deleteStagingDeal,transferStagingToCrm,addCrmStage,updateCrmStage,deleteCrmStage,reorderCrmStage,addChatChannel,updateChatChannel,deleteChatChannel,addChatMessage,updateChatMessage,deleteChatMessage,addChatReaction,pinChatMessage,setChatUser,updatePhaseDates,startPhase,setPhaseStatus,holdProject,resumeProject,addMilestone,updateMilestone,deleteMilestone,completeMilestone,addITColumn,removeITColumn,updateITColumnColor,addITColumnItem,removeITColumnItem,addCardLink,removeCardLink,_ensureITCols,IT_DEFAULT_COLS,BASE_TASK_STATUSES,getGlobalStatuses,getProjectStatuses,addGlobalTaskStatus,removeGlobalTaskStatus,updateGlobalTaskStatus,renameBaseStatus,addLocalTaskStatus,removeLocalTaskStatus,moveGlobalStatusOrder,moveLocalStatusOrder};
+  return {data,stats,toast,sbStatus,sbLoaded,reconnectSb,hashPwd,addUser,updateUser,deleteUser,resetUserPassword,validateLogin,addClient,addPerson,addProject,updateProject,activateProject,addAssignment,removeAssignment,addTrack,addTask,addBlocker,resolveBlocker,addPayment,markPaymentAccrued,markPaymentPaid,markAllPaymentsPaid,addPnlOverride,deletePnlOverride,addRecommendation,addRecommendationsBatch,updateRecommendationStatus,deleteRecommendation,addOverhead,updateOverhead,removeOverhead,addKbBudgetItem,updateKbBudgetItem,deleteKbBudgetItem,addHrBudgetItem,updateHrBudgetItem,deleteHrBudgetItem,addOhRegistryItem,updateOhRegistryItem,deleteOhRegistryItem,toggleOhRegistryVerified,clearOverheadRegistry,syncOhToProject,syncOhToKbBudget,bulkImportOhRegistry,runFkDoubleCheck,addTimeEntry,updateTimeEntry,deleteTimeEntry,autoScheduleTracks,forceScheduleTracks,addGoal,addSubGoal,deleteSubGoal,addSubject,exportData,updateClient,updatePerson,deletePerson,updateTrackDates,updateTrackStatus,deleteTrack,updateTaskStatus,updateTask,deleteTask,deleteProject,updatePayment,deletePayment,advanceStage,importData,addProjectType,deleteProjectType,addDocument,deleteDocument,updateAdminScale,updatePhaseDoc,addInsight,deleteInsight,linkTrackToSubject,unlinkTrackFromSubject,deleteGoal,deleteSubject,linkTrackToInsight,unlinkTrackFromInsight,addTrackDep,removeTrackDep,upsertWeeklyHours,deleteWeeklyHours,lockProject,unlockProject,earlyCompleteProject,addCrmDeal,updateCrmDeal,deleteCrmDeal,addIcfDeal,updateIcfDeal,deleteIcfDeal,bulkImportIcfDeals,toggleNonStudent,getMetricsMap,setMetricsMap,updateMetricsNode,addMetricsNode,deleteMetricsNode,addMetricsLink,deleteMetricsLink,addStagingDeal,updateStagingDeal,deleteStagingDeal,transferStagingToCrm,addCrmStage,updateCrmStage,deleteCrmStage,reorderCrmStage,addChatChannel,updateChatChannel,deleteChatChannel,addChatMessage,updateChatMessage,deleteChatMessage,addChatReaction,pinChatMessage,setChatUser,addNotification,markNotificationRead,markAllNotificationsRead,deleteNotification,updatePhaseDates,startPhase,setPhaseStatus,holdProject,resumeProject,addMilestone,updateMilestone,deleteMilestone,completeMilestone,addITColumn,removeITColumn,updateITColumnColor,addITColumnItem,removeITColumnItem,addCardLink,removeCardLink,_ensureITCols,IT_DEFAULT_COLS,BASE_TASK_STATUSES,getGlobalStatuses,getProjectStatuses,addGlobalTaskStatus,removeGlobalTaskStatus,updateGlobalTaskStatus,renameBaseStatus,addLocalTaskStatus,removeLocalTaskStatus,moveGlobalStatusOrder,moveLocalStatusOrder};
 }
 
 /* ===== FORMS ===== */
@@ -11270,6 +11439,60 @@ function ChatView({store}){
   const EMOJIS=['👍','👎','❤️','😂','🎉','🤔','👀','🔥','✅','❌','💯','🙏','😍','😢','🚀','⭐'];
 
   const persons=store.data.persons||[];
+  const mentionUsers=(store.data.users||[]).filter(u=>u.is_active);
+
+  /* @-mention autocomplete */
+  const [mentionQuery,setMentionQuery]=useState('');
+  const [mentionActive,setMentionActive]=useState(false);
+  const [mentionIdx,setMentionIdx]=useState(0);
+  const [mentionTarget,setMentionTarget]=useState('main'); /* 'main' | 'thread' */
+  const mainInputRef=React.useRef(null);
+  const threadInputRef=React.useRef(null);
+
+  const mentionFiltered=mentionActive?mentionUsers.filter(u=>{
+    const q=mentionQuery.toLowerCase();
+    return (u.login||'').toLowerCase().includes(q)||(u.name||'').toLowerCase().includes(q);
+  }).slice(0,8):[];
+
+  const handleMentionInput=(e,target)=>{
+    const val=e.target.value;
+    if(target==='main')setMsgText(val); else setThreadText(val);
+    /* Detect @ trigger */
+    const pos=e.target.selectionStart;
+    const before=val.slice(0,pos);
+    const atMatch=before.match(/@([\w.]*)$/);
+    if(atMatch){
+      setMentionQuery(atMatch[1]);
+      setMentionActive(true);
+      setMentionIdx(0);
+      setMentionTarget(target);
+    } else {
+      setMentionActive(false);
+    }
+  };
+
+  const insertMention=(user,target)=>{
+    const ref=target==='main'?mainInputRef:threadInputRef;
+    const getText=target==='main'?msgText:threadText;
+    const setText=target==='main'?setMsgText:setThreadText;
+    const el=ref.current;
+    if(!el)return;
+    const pos=el.selectionStart;
+    const before=getText.slice(0,pos);
+    const after=getText.slice(pos);
+    const newBefore=before.replace(/@[\w.]*$/,'@'+user.login+' ');
+    setText(newBefore+after);
+    setMentionActive(false);
+    setTimeout(()=>{el.focus();el.selectionStart=el.selectionEnd=newBefore.length;},0);
+  };
+
+  const handleMentionKeyDown=(e,target)=>{
+    if(!mentionActive||mentionFiltered.length===0)return;
+    if(e.key==='ArrowDown'){e.preventDefault();setMentionIdx(i=>(i+1)%mentionFiltered.length);}
+    else if(e.key==='ArrowUp'){e.preventDefault();setMentionIdx(i=>(i-1+mentionFiltered.length)%mentionFiltered.length);}
+    else if(e.key==='Enter'&&mentionActive&&mentionFiltered.length>0){e.preventDefault();e.stopPropagation();insertMention(mentionFiltered[mentionIdx],target);}
+    else if(e.key==='Escape'){setMentionActive(false);}
+  };
 
   /* Project sub-channels — auto-generated for active projects */
   const activeProjects=(store.data.projects||[]).filter(p=>p.status==='ACTIVE');
@@ -11604,7 +11827,19 @@ function ChatView({store}){
       <div style={{padding:'8px 16px 12px',borderTop:'1px solid var(--border)',flexShrink:0}}>
         <div style={{fontSize:9,color:'var(--text2)',marginBottom:4}}>**жирный** *курсив* `код` @упоминание | Shift+Enter — новая строка</div>
         <div style={{display:'flex',gap:8,alignItems:'flex-end'}}>
-          <textarea value={msgText} onChange={e=>setMsgText(e.target.value)} placeholder={channel?(channel.type==='project'?'Сообщение по проекту '+channel.proj_code+'...':'Сообщение в #'+channel.name+'...'):'Выберите канал'} style={{flex:1,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 12px',color:'var(--text)',fontSize:13,resize:'none',minHeight:40,maxHeight:120,fontFamily:'inherit'}} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}} rows={1}/>
+          <div style={{flex:1,position:'relative'}}>
+            <textarea ref={mainInputRef} value={msgText} onChange={e=>handleMentionInput(e,'main')} placeholder={channel?(channel.type==='project'?'Сообщение по проекту '+channel.proj_code+'...':'Сообщение в #'+channel.name+'...'):'Выберите канал'} style={{width:'100%',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 12px',color:'var(--text)',fontSize:13,resize:'none',minHeight:40,maxHeight:120,fontFamily:'inherit',boxSizing:'border-box'}} onKeyDown={e=>{handleMentionKeyDown(e,'main');if(e.key==='Enter'&&!e.shiftKey&&!mentionActive){e.preventDefault();sendMessage();}}} rows={1}/>
+            {mentionActive&&mentionTarget==='main'&&mentionFiltered.length>0&&<div style={{position:'absolute',bottom:'100%',left:0,right:0,maxHeight:200,overflowY:'auto',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,boxShadow:'0 -4px 16px rgba(0,0,0,.3)',zIndex:100,marginBottom:4}}>
+              {mentionFiltered.map((u,i)=><div key={u.id} onClick={()=>insertMention(u,'main')} onMouseEnter={()=>setMentionIdx(i)} style={{padding:'8px 12px',cursor:'pointer',display:'flex',alignItems:'center',gap:8,background:i===mentionIdx?'var(--bg4)':'transparent',borderBottom:'1px solid var(--border)'}}>
+                <div style={{width:28,height:28,borderRadius:'50%',background:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff',flexShrink:0}}>{(u.name||u.login||'?')[0].toUpperCase()}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{u.name||u.login}</div>
+                  <div style={{fontSize:10,color:'var(--text2)'}}>@{u.login}</div>
+                </div>
+                {u.role==='admin'&&<span style={{fontSize:9,color:'var(--amber)',fontWeight:600}}>admin</span>}
+              </div>)}
+            </div>}
+          </div>
           <button onClick={sendMessage} disabled={!msgText.trim()} style={{padding:'8px 16px',background:msgText.trim()?'var(--accent)':'var(--bg4)',color:'#fff',border:'none',borderRadius:8,cursor:msgText.trim()?'pointer':'default',fontSize:13,fontWeight:600,whiteSpace:'nowrap',height:40}}>↑</button>
         </div>
       </div>
@@ -11629,7 +11864,15 @@ function ChatView({store}){
       {/* Thread input */}
       <div style={{padding:'8px 14px 12px',borderTop:'1px solid var(--border)'}}>
         <div style={{display:'flex',gap:6,alignItems:'flex-end'}}>
-          <textarea value={threadText} onChange={e=>setThreadText(e.target.value)} placeholder="Ответить в треде..." style={{flex:1,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 10px',color:'var(--text)',fontSize:12,resize:'none',minHeight:36,maxHeight:80,fontFamily:'inherit'}} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendThreadReply();}}} rows={1}/>
+          <div style={{flex:1,position:'relative'}}>
+            <textarea ref={threadInputRef} value={threadText} onChange={e=>handleMentionInput(e,'thread')} placeholder="Ответить в треде..." style={{width:'100%',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 10px',color:'var(--text)',fontSize:12,resize:'none',minHeight:36,maxHeight:80,fontFamily:'inherit',boxSizing:'border-box'}} onKeyDown={e=>{handleMentionKeyDown(e,'thread');if(e.key==='Enter'&&!e.shiftKey&&!mentionActive){e.preventDefault();sendThreadReply();}}} rows={1}/>
+            {mentionActive&&mentionTarget==='thread'&&mentionFiltered.length>0&&<div style={{position:'absolute',bottom:'100%',left:0,right:0,maxHeight:180,overflowY:'auto',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,boxShadow:'0 -4px 16px rgba(0,0,0,.3)',zIndex:100,marginBottom:4}}>
+              {mentionFiltered.map((u,i)=><div key={u.id} onClick={()=>insertMention(u,'thread')} onMouseEnter={()=>setMentionIdx(i)} style={{padding:'6px 10px',cursor:'pointer',display:'flex',alignItems:'center',gap:6,background:i===mentionIdx?'var(--bg4)':'transparent',borderBottom:'1px solid var(--border)'}}>
+                <div style={{width:24,height:24,borderRadius:'50%',background:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#fff',flexShrink:0}}>{(u.name||u.login||'?')[0].toUpperCase()}</div>
+                <div><div style={{fontSize:11,fontWeight:600,color:'var(--text)'}}>{u.name||u.login}</div><div style={{fontSize:9,color:'var(--text2)'}}>@{u.login}</div></div>
+              </div>)}
+            </div>}
+          </div>
           <button onClick={sendThreadReply} disabled={!threadText.trim()} style={{padding:'6px 12px',background:threadText.trim()?'var(--accent)':'var(--bg4)',color:'#fff',border:'none',borderRadius:6,cursor:threadText.trim()?'pointer':'default',fontSize:12,height:36}}>↑</button>
         </div>
       </div>
@@ -11798,6 +12041,7 @@ function App(){
   const [session,setSession]=useState(()=>{try{return JSON.parse(sessionStorage.getItem('pp_auth_session'));}catch(e){return null;}});
   const handleLogin=(s)=>setSession(s);
   const handleLogout=()=>{sessionStorage.removeItem('pp_auth_session');setSession(null);};
+  const [showNotifPanel,setShowNotifPanel]=useState(false);
   useEffect(()=>{window.__ppAPI={addRecs:(recs)=>store.addRecommendationsBatch(recs),getData:()=>store.data};},[store]);
   useEffect(()=>{
     const recs=store.data.recommendations||[];
@@ -11817,7 +12061,9 @@ function App(){
   const selProject=useMemo(()=>store.data.projects.find(p=>p.id===selProjId),[selProjId,store.data.projects]);
 
   const _sbDot={online:'#22c55e',saved:'#22c55e',saving:'#eab308',loading:'#0ea5e9',error:'#ef4444',offline:'#6b7280'};
-  const _sbLabel={online:'Online',saved:'Сохранено ✓',saving:'Сохраняю...',loading:'Загрузка...',error:'Ошибка',offline:'Локально'};
+  const _isLH=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1';
+  const _modeLabel=_isLH?' (slave)':' (master)';
+  const _sbLabel={online:'Online'+_modeLabel,saved:'Сохранено ✓',saving:'Сохраняю...',loading:'Загрузка...',error:'Ошибка',offline:'Локально'+_modeLabel};
 
   /* Loading screen while Supabase data loads */
   if(!store.sbLoaded) return <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',color:'var(--text)',flexDirection:'column',gap:12}}>
@@ -11837,6 +12083,15 @@ function App(){
       {/* User info + Logout */}
       {session&&<div style={{position:'absolute',bottom:52,left:12,right:12,display:'flex',flexDirection:'column',gap:4}}>
         <div style={{fontSize:10,color:'#8888aa',padding:'0 2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={session.name||session.login}>{session.role==='admin'?'👑':'👤'} {session.name||session.login}</div>
+        {(()=>{
+          const myNotifs=(store.data.notifications||[]).filter(n=>n.user_id===session.user_id);
+          const unreadCount=myNotifs.filter(n=>!n.read).length;
+          return <div onClick={()=>setShowNotifPanel(v=>!v)} style={{padding:'6px 10px',borderRadius:6,background:unreadCount>0?'rgba(99,102,241,0.15)':'rgba(255,255,255,0.05)',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:11,color:unreadCount>0?'var(--accent2)':'#8888aa',border:'1px solid '+(unreadCount>0?'rgba(99,102,241,0.3)':'rgba(255,255,255,0.08)'),position:'relative'}}>
+            <span>🔔</span>
+            <span>Уведомления</span>
+            {unreadCount>0&&<span style={{marginLeft:'auto',background:'var(--accent)',color:'#fff',borderRadius:10,padding:'1px 6px',fontSize:10,fontWeight:700,minWidth:16,textAlign:'center'}}>{unreadCount}</span>}
+          </div>;
+        })()}
         <div onClick={handleLogout} style={{padding:'6px 10px',borderRadius:6,background:'rgba(239,68,68,0.15)',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:11,color:'#ef4444',border:'1px solid rgba(239,68,68,0.2)'}} onMouseOver={e=>e.currentTarget.style.background='rgba(239,68,68,0.25)'} onMouseOut={e=>e.currentTarget.style.background='rgba(239,68,68,0.15)'}>
           <span>🚪</span><span>Выход</span>
         </div>
@@ -11861,6 +12116,38 @@ function App(){
       {page==='settings'&&<SettingsView store={store}/>}
       {page==='test'&&<TestPage store={store}/>}
     </div>
+    {/* Notification panel */}
+    {showNotifPanel&&session&&(()=>{
+      const myNotifs=(store.data.notifications||[]).filter(n=>n.user_id===session.user_id).sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+      const unread=myNotifs.filter(n=>!n.read);
+      const allChannels2=[...(store.data.chat_channels||[{id:'general',name:'Общий'}]),...(store.data.projects||[]).filter(pp=>pp.status==='ACTIVE').map(pp=>({id:'proj_'+pp.id,name:pp.code||pp.name,type:'project',project_id:pp.id}))];
+      const getChName=(chId)=>{const ch=allChannels2.find(c=>c.id===chId);return ch?(ch.type==='project'?'📁 '+(ch.name):'#'+ch.name):chId;};
+      const fmtTime=(ts)=>{if(!ts)return '';const d=new Date(ts);const diff=Date.now()-d;if(diff<3600000)return Math.floor(diff/60000)+'м назад';if(diff<86400000)return Math.floor(diff/3600000)+'ч назад';return d.toLocaleDateString('ru',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});};
+      return <div style={{position:'fixed',inset:0,zIndex:9998}} onClick={()=>setShowNotifPanel(false)}>
+        <div onClick={e=>e.stopPropagation()} style={{position:'fixed',bottom:52,left:12,width:360,maxHeight:480,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12,boxShadow:'0 8px 32px rgba(0,0,0,.4)',display:'flex',flexDirection:'column',overflow:'hidden',zIndex:9999}}>
+          <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div style={{fontWeight:700,fontSize:14}}>🔔 Уведомления</div>
+            <div style={{display:'flex',gap:6}}>
+              {unread.length>0&&<button onClick={()=>store.markAllNotificationsRead(session.user_id)} style={{background:'var(--bg4)',border:'none',borderRadius:6,padding:'3px 8px',fontSize:10,color:'var(--accent2)',cursor:'pointer'}}>Прочитать все</button>}
+              <button onClick={()=>setShowNotifPanel(false)} style={{background:'none',border:'none',color:'var(--text2)',cursor:'pointer',fontSize:16}}>×</button>
+            </div>
+          </div>
+          <div style={{flex:1,overflowY:'auto',maxHeight:400}}>
+            {myNotifs.length===0&&<div style={{padding:24,textAlign:'center',color:'var(--text2)',fontSize:13}}>Нет уведомлений</div>}
+            {myNotifs.map(n=><div key={n.id} onClick={()=>{store.markNotificationRead(n.id);if(n.channel_id){setPage('chat');localStorage.setItem('pp_chatCh',n.channel_id);setShowNotifPanel(false);}}} style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',cursor:'pointer',background:n.read?'transparent':'rgba(99,102,241,.06)',transition:'background .15s'}} onMouseOver={e=>{if(!n.read)e.currentTarget.style.background='rgba(99,102,241,.1)';}} onMouseOut={e=>{e.currentTarget.style.background=n.read?'transparent':'rgba(99,102,241,.06)';}}>
+              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+                {!n.read&&<span style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0}}/>}
+                <span style={{fontSize:11,fontWeight:600,color:'var(--text)'}}>{n.from_user_name||'?'}</span>
+                <span style={{fontSize:10,color:'var(--text2)'}}>упомянул вас</span>
+                <span style={{fontSize:9,color:'var(--text2)',marginLeft:'auto'}}>{fmtTime(n.created_at)}</span>
+              </div>
+              <div style={{fontSize:11,color:'var(--text2)',marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{n.message_text||''}</div>
+              <div style={{fontSize:9,color:'var(--accent2)'}}>{getChName(n.channel_id)}</div>
+            </div>)}
+          </div>
+        </div>
+      </div>;
+    })()}
     {store.toast&&<div className="toast">{store.toast}</div>}
     {showSbConfig&&<SupabaseConfigModal onConnect={()=>{store.reconnectSb();setShowSbConfig(false);}} onSkip={()=>setShowSbConfig(false)}/>}
   </div>;
