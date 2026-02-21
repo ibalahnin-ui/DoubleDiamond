@@ -772,8 +772,8 @@ const statusMap={ACTIVE:'b-active',DRAFT:'b-draft',COMPLETED:'b-completed',PAUSE
 const SB=s=><span className={`badge ${statusMap[s]||'b-draft'}`}>{s}</span>;
 const TCB=tc=><span className={`badge b-${(tc||'').toLowerCase()}`}>{tc}</span>;
 const calcDaysBetween=(d1,d2)=>{if(!d1||!d2)return 0;const a=new Date(d1);const b=new Date(d2);const diff=Math.abs(b-a);return Math.max(1,Math.ceil(diff/(1000*60*60*24)));};
-  const calcPhaseDays=(ph)=>{if(ph.status==='COMPLETED'&&ph.started_at&&ph.completed_at)return calcDaysBetween(ph.started_at,ph.completed_at);if(ph.status==='IN_PROGRESS'&&ph.started_at)return calcDaysBetween(ph.started_at,new Date().toISOString());return 0;};
-  const calcStageDays=(st)=>{if(st.status==='COMPLETED'&&st.started_at&&st.completed_at)return calcDaysBetween(st.started_at,st.completed_at);if(st.status==='IN_PROGRESS'&&st.started_at)return calcDaysBetween(st.started_at,new Date().toISOString());return 0;};
+  const calcPhaseDays=(ph)=>{const hd=Number(ph.hold_days)||0;if(ph.status==='COMPLETED'&&ph.started_at&&ph.completed_at)return Math.max(0,calcDaysBetween(ph.started_at,ph.completed_at)-hd);if(ph.status==='IN_PROGRESS'&&ph.started_at)return Math.max(0,calcDaysBetween(ph.started_at,new Date().toISOString())-hd);if(ph.status==='ON_HOLD'&&ph.started_at)return Math.max(0,calcDaysBetween(ph.started_at,ph.hold_started_at||new Date().toISOString())-hd);return 0;};
+  const calcStageDays=(st)=>{const hd=Number(st.hold_days)||0;if(st.status==='COMPLETED'&&st.started_at&&st.completed_at)return Math.max(0,calcDaysBetween(st.started_at,st.completed_at)-hd);if(st.status==='IN_PROGRESS'&&st.started_at)return Math.max(0,calcDaysBetween(st.started_at,new Date().toISOString())-hd);if(st.status==='ON_HOLD'&&st.started_at)return Math.max(0,calcDaysBetween(st.started_at,st.hold_started_at||new Date().toISOString())-hd);return 0;};
   const calcPnlHealth=(proj,persons)=>{
     const _allPaymentsSum=(proj.payments||[]).reduce((s,x)=>s+(Number(x.amount)||0),0);
     const _tcv=(proj.project_type==='New Delivery'||proj.project_type==='ФК')?_allPaymentsSum:(Number(proj.total_contract_value)||Number(proj.fixed_price)||0);
@@ -1233,13 +1233,14 @@ const calcPhaseBuffer=(group,today)=>{
   const bufferDays=Math.round(totalDays*0.33);
   const workDays=totalDays-bufferDays;
   const workEnd=new Date(ps);workEnd.setDate(workEnd.getDate()+workDays);
-  const daysElapsed=Math.ceil((today-ps)/864e5);
+  const daysElapsed=(group.status==='ON_HOLD'&&group.phases)?Math.max(0,group.phases.reduce((s,ph)=>s+calcPhaseDays(ph),0)):Math.ceil((today-ps)/864e5);
   const daysRemaining=Math.ceil((pe-today)/864e5);
   let bufferConsumed=0;
   if(today>workEnd)bufferConsumed=Math.ceil((today-workEnd)/864e5);
   const bufferPct=bufferDays>0?Math.min(Math.round(bufferConsumed/bufferDays*100),999):0;
   let health='green';
   if(group.status==='COMPLETED')health='done';
+  else if(group.status==='ON_HOLD')health='yellow';
   else if(group.status==='NOT_STARTED')health='gray';
   else if(daysRemaining<=0)health='red';
   else if(bufferPct>66)health='red';
@@ -2816,6 +2817,80 @@ function useStore(){
     _chatLog(projId,'▶️ Фаза проекта запущена');
   };
 
+  /* ===== Set phase status manually (ON_HOLD / resume / etc.) ===== */
+  const setPhaseStatus=(projId,phaseId,newStatus)=>{
+    setData(d=>({...d,projects:d.projects.map(p=>{
+      if(p.id!==projId)return p;
+      const phases=(p.phases||[]).map(ph=>{
+        if(ph.id!==phaseId)return ph;
+        const upd={...ph,status:newStatus};
+        if(newStatus==='ON_HOLD'&&ph.status==='IN_PROGRESS'){
+          /* Remember when hold started; pause stages too */
+          upd.hold_started_at=now();
+          upd.stages=(ph.stages||[]).map(st=>st.status==='IN_PROGRESS'?{...st,status:'ON_HOLD',hold_started_at:now()}:st);
+        }
+        if(newStatus==='IN_PROGRESS'&&ph.status==='ON_HOLD'){
+          /* Resume: accumulate hold_days */
+          const held=ph.hold_started_at?calcDaysBetween(ph.hold_started_at,now()):0;
+          upd.hold_days=(Number(ph.hold_days)||0)+held;
+          delete upd.hold_started_at;
+          upd.stages=(ph.stages||[]).map(st=>{
+            if(st.status!=='ON_HOLD')return st;
+            const sHeld=st.hold_started_at?calcDaysBetween(st.hold_started_at,now()):0;
+            return {...st,status:'IN_PROGRESS',hold_days:(Number(st.hold_days)||0)+sHeld,hold_started_at:undefined};
+          });
+        }
+        if(newStatus==='IN_PROGRESS'&&ph.status==='NOT_STARTED'){
+          upd.started_at=now();
+          upd.stages=(ph.stages||[]).map((st,i)=>i===0?{...st,status:'IN_PROGRESS',started_at:now()}:st);
+        }
+        if(newStatus==='COMPLETED'&&!ph.completed_at){
+          upd.completed_at=now();
+          upd.stages=(ph.stages||[]).map(st=>st.status!=='COMPLETED'?{...st,status:'COMPLETED',completed_at:now()}:st);
+        }
+        return upd;
+      });
+      return {...p,phases,updated_at:now()};
+    })}));
+    const labels={ON_HOLD:'⏸ Фаза приостановлена',IN_PROGRESS:'▶️ Фаза возобновлена',COMPLETED:'✅ Фаза завершена',NOT_STARTED:'⏹ Фаза сброшена'};
+    showToast(labels[newStatus]||'Статус фазы: '+newStatus);
+    _chatLog(projId,(labels[newStatus]||'Статус фазы: '+newStatus));
+  };
+
+  /* ===== Hold/Resume entire project (affects all IN_PROGRESS phases) ===== */
+  const holdProject=(projId)=>{
+    setData(d=>({...d,projects:d.projects.map(p=>{
+      if(p.id!==projId)return p;
+      const phases=(p.phases||[]).map(ph=>{
+        if(ph.status!=='IN_PROGRESS')return ph;
+        return {...ph,status:'ON_HOLD',hold_started_at:now(),
+          stages:(ph.stages||[]).map(st=>st.status==='IN_PROGRESS'?{...st,status:'ON_HOLD',hold_started_at:now()}:st)};
+      });
+      return {...p,status:'ON_HOLD',phases,updated_at:now()};
+    })}));
+    showToast('Проект приостановлен');
+    _chatLog(projId,'⏸ Проект приостановлен — все фазы на паузе');
+  };
+
+  const resumeProject=(projId)=>{
+    setData(d=>({...d,projects:d.projects.map(p=>{
+      if(p.id!==projId)return p;
+      const phases=(p.phases||[]).map(ph=>{
+        if(ph.status!=='ON_HOLD')return ph;
+        const held=ph.hold_started_at?calcDaysBetween(ph.hold_started_at,now()):0;
+        return {...ph,status:'IN_PROGRESS',hold_days:(Number(ph.hold_days)||0)+held,hold_started_at:undefined,
+          stages:(ph.stages||[]).map(st=>{
+            if(st.status!=='ON_HOLD')return st;
+            const sHeld=st.hold_started_at?calcDaysBetween(st.hold_started_at,now()):0;
+            return {...st,status:'IN_PROGRESS',hold_days:(Number(st.hold_days)||0)+sHeld,hold_started_at:undefined};
+          })};
+      });
+      return {...p,status:'ACTIVE',phases,updated_at:now()};
+    })}));
+    showToast('Проект возобновлён');
+    _chatLog(projId,'▶️ Проект возобновлён — фазы продолжены');
+  };
+
   /* ===== Milestones / Enablers ===== */
   const addMilestone=(projId,ms)=>{
     const m={id:uuid(),name:ms.name||'',description:ms.description||'',target_date:ms.target_date||'',phase_id:ms.phase_id||null,status:'PENDING',is_enabler:ms.is_enabler||false,created_at:now()};
@@ -3115,7 +3190,7 @@ function useStore(){
 
   const stats=useMemo(()=>({projectCount:data.projects.length,activeCount:data.projects.filter(p=>p.status==='ACTIVE').length,clientCount:data.clients.length,personCount:data.persons.filter(p=>p.is_active).length,taskCount:data.projects.reduce((s,p)=>s+(p.tasks||[]).length,0),blockerCount:data.projects.reduce((s,p)=>s+(p.blockers||[]).filter(b=>!b.resolved_at).length,0)}),[data.projects,data.clients,data.persons]);
 
-  return {data,stats,toast,sbStatus,sbLoaded,reconnectSb,addClient,addPerson,addProject,updateProject,activateProject,addAssignment,removeAssignment,addTrack,addTask,addBlocker,resolveBlocker,addPayment,markPaymentAccrued,markPaymentPaid,markAllPaymentsPaid,addPnlOverride,deletePnlOverride,addRecommendation,addRecommendationsBatch,updateRecommendationStatus,deleteRecommendation,addOverhead,updateOverhead,removeOverhead,addKbBudgetItem,updateKbBudgetItem,deleteKbBudgetItem,addHrBudgetItem,updateHrBudgetItem,deleteHrBudgetItem,addOhRegistryItem,updateOhRegistryItem,deleteOhRegistryItem,toggleOhRegistryVerified,syncOhToProject,syncOhToKbBudget,bulkImportOhRegistry,runFkDoubleCheck,addTimeEntry,updateTimeEntry,deleteTimeEntry,autoScheduleTracks,forceScheduleTracks,addGoal,addSubGoal,deleteSubGoal,addSubject,exportData,updateClient,updatePerson,deletePerson,updateTrackDates,updateTrackStatus,deleteTrack,updateTaskStatus,updateTask,deleteTask,deleteProject,updatePayment,deletePayment,advanceStage,importData,addProjectType,deleteProjectType,addDocument,deleteDocument,updateAdminScale,updatePhaseDoc,addInsight,deleteInsight,linkTrackToSubject,unlinkTrackFromSubject,deleteGoal,deleteSubject,linkTrackToInsight,unlinkTrackFromInsight,addTrackDep,removeTrackDep,upsertWeeklyHours,deleteWeeklyHours,lockProject,unlockProject,earlyCompleteProject,addCrmDeal,updateCrmDeal,deleteCrmDeal,addIcfDeal,updateIcfDeal,deleteIcfDeal,bulkImportIcfDeals,toggleNonStudent,getMetricsMap,setMetricsMap,updateMetricsNode,addMetricsNode,deleteMetricsNode,addMetricsLink,deleteMetricsLink,addStagingDeal,updateStagingDeal,deleteStagingDeal,transferStagingToCrm,addCrmStage,updateCrmStage,deleteCrmStage,reorderCrmStage,addChatChannel,updateChatChannel,deleteChatChannel,addChatMessage,updateChatMessage,deleteChatMessage,addChatReaction,pinChatMessage,setChatUser,updatePhaseDates,startPhase,addMilestone,updateMilestone,deleteMilestone,completeMilestone,addITColumn,removeITColumn,updateITColumnColor,addITColumnItem,removeITColumnItem,addCardLink,removeCardLink,_ensureITCols,IT_DEFAULT_COLS,BASE_TASK_STATUSES,getGlobalStatuses,getProjectStatuses,addGlobalTaskStatus,removeGlobalTaskStatus,updateGlobalTaskStatus,renameBaseStatus,addLocalTaskStatus,removeLocalTaskStatus,moveGlobalStatusOrder,moveLocalStatusOrder};
+  return {data,stats,toast,sbStatus,sbLoaded,reconnectSb,addClient,addPerson,addProject,updateProject,activateProject,addAssignment,removeAssignment,addTrack,addTask,addBlocker,resolveBlocker,addPayment,markPaymentAccrued,markPaymentPaid,markAllPaymentsPaid,addPnlOverride,deletePnlOverride,addRecommendation,addRecommendationsBatch,updateRecommendationStatus,deleteRecommendation,addOverhead,updateOverhead,removeOverhead,addKbBudgetItem,updateKbBudgetItem,deleteKbBudgetItem,addHrBudgetItem,updateHrBudgetItem,deleteHrBudgetItem,addOhRegistryItem,updateOhRegistryItem,deleteOhRegistryItem,toggleOhRegistryVerified,syncOhToProject,syncOhToKbBudget,bulkImportOhRegistry,runFkDoubleCheck,addTimeEntry,updateTimeEntry,deleteTimeEntry,autoScheduleTracks,forceScheduleTracks,addGoal,addSubGoal,deleteSubGoal,addSubject,exportData,updateClient,updatePerson,deletePerson,updateTrackDates,updateTrackStatus,deleteTrack,updateTaskStatus,updateTask,deleteTask,deleteProject,updatePayment,deletePayment,advanceStage,importData,addProjectType,deleteProjectType,addDocument,deleteDocument,updateAdminScale,updatePhaseDoc,addInsight,deleteInsight,linkTrackToSubject,unlinkTrackFromSubject,deleteGoal,deleteSubject,linkTrackToInsight,unlinkTrackFromInsight,addTrackDep,removeTrackDep,upsertWeeklyHours,deleteWeeklyHours,lockProject,unlockProject,earlyCompleteProject,addCrmDeal,updateCrmDeal,deleteCrmDeal,addIcfDeal,updateIcfDeal,deleteIcfDeal,bulkImportIcfDeals,toggleNonStudent,getMetricsMap,setMetricsMap,updateMetricsNode,addMetricsNode,deleteMetricsNode,addMetricsLink,deleteMetricsLink,addStagingDeal,updateStagingDeal,deleteStagingDeal,transferStagingToCrm,addCrmStage,updateCrmStage,deleteCrmStage,reorderCrmStage,addChatChannel,updateChatChannel,deleteChatChannel,addChatMessage,updateChatMessage,deleteChatMessage,addChatReaction,pinChatMessage,setChatUser,updatePhaseDates,startPhase,setPhaseStatus,holdProject,resumeProject,addMilestone,updateMilestone,deleteMilestone,completeMilestone,addITColumn,removeITColumn,updateITColumnColor,addITColumnItem,removeITColumnItem,addCardLink,removeCardLink,_ensureITCols,IT_DEFAULT_COLS,BASE_TASK_STATUSES,getGlobalStatuses,getProjectStatuses,addGlobalTaskStatus,removeGlobalTaskStatus,updateGlobalTaskStatus,renameBaseStatus,addLocalTaskStatus,removeLocalTaskStatus,moveGlobalStatusOrder,moveLocalStatusOrder};
 }
 
 /* ===== FORMS ===== */
@@ -4725,6 +4800,8 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
       {/* Header buttons */}
       <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:12}}>
         {p.status==='ACTIVE'&&<button className="btn btn-primary btn-sm" onClick={()=>store.advanceStage(p.id)}>Продвинуть этап →</button>}
+              {p.status==='ACTIVE'&&<button className="btn btn-sm" style={{background:'var(--amber)',color:'#000',border:'none',borderRadius:6,padding:'4px 10px',fontSize:11,cursor:'pointer'}} onClick={()=>store.holdProject(p.id)}>⏸ Приостановить проект</button>}
+              {p.status==='ON_HOLD'&&<button className="btn btn-sm" style={{background:'var(--green)',color:'#fff',border:'none',borderRadius:6,padding:'4px 10px',fontSize:11,cursor:'pointer'}} onClick={()=>store.resumeProject(p.id)}>▶ Возобновить проект</button>}
         {p.status==='ACTIVE'&&(p.project_type==='New Delivery'||p.project_type==='Old Delivery')&&<button className="btn btn-sm" style={{background:'var(--amber)',color:'#fff',border:'none'}} onClick={()=>setShowEarlyComplete(true)}>Досрочное завершение</button>}
         {/* Phase grouping mode switcher (only for Old Delivery / DD) */}
         {p.project_type!=='ФК'&&p.project_type!=='New Delivery'&&<div className="pg-mode-switch" style={{marginBottom:0,marginLeft:'auto'}}>
@@ -4807,6 +4884,8 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
                   <div style={{display:'flex',gap:6,alignItems:'center'}}>
                     {grp.status==='NOT_STARTED'&&p.status==='ACTIVE'&&!hasAnyIP&&<button className="pg-start-btn" onClick={()=>{const first=grp.phases.find(ph=>ph.status==='NOT_STARTED');if(first)store.startPhase(p.id,first.id);}}>▶ Начать</button>}
                     {grp.status==='NOT_STARTED'&&p.status==='ACTIVE'&&hasAnyIP&&<button className="pg-start-btn" style={{opacity:.6,background:'var(--text2)'}} title="Завершите текущую фазу" disabled>Ожидает</button>}
+                    {grp.status==='IN_PROGRESS'&&<button className="pg-start-btn" style={{background:'var(--amber)',fontSize:9,padding:'2px 8px'}} onClick={()=>{grp.phases.filter(ph=>ph.status==='IN_PROGRESS').forEach(ph=>store.setPhaseStatus(p.id,ph.id,'ON_HOLD'));}}>⏸ Пауза</button>}
+                    {grp.status==='ON_HOLD'&&<button className="pg-start-btn" style={{background:'var(--green)',fontSize:9,padding:'2px 8px'}} onClick={()=>{grp.phases.filter(ph=>ph.status==='ON_HOLD').forEach(ph=>store.setPhaseStatus(p.id,ph.id,'IN_PROGRESS'));}}>▶ Возобновить</button>}
                     <span>{SB(grp.status)}</span>
                   </div>
                 </div>
@@ -4821,9 +4900,9 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
                     {grp.phases.length>1&&<div style={{fontSize:9,fontWeight:600,color:'var(--text2)',marginBottom:2}}>{ph.phase_name}</div>}
                     <div className="pg-phase-date-row">
                       <label>Старт</label>
-                      <input type="date" value={ph.period_start||''} min={cStart} max={ph.period_end||cEnd} onChange={e=>{store.updatePhaseDates(p.id,ph.id,{period_start:e.target.value})}}/>
+                      <input type="date" value={ph.period_start||''} onChange={e=>{store.updatePhaseDates(p.id,ph.id,{period_start:e.target.value})}}/>
                       <label>Конец</label>
-                      <input type="date" value={ph.period_end||''} min={ph.period_start||cStart} max={cEnd} onChange={e=>{store.updatePhaseDates(p.id,ph.id,{period_end:e.target.value})}}/>
+                      <input type="date" value={ph.period_end||''} onChange={e=>{store.updatePhaseDates(p.id,ph.id,{period_end:e.target.value})}}/>
                     </div>
                   </div>)}
                 </div>
@@ -4840,6 +4919,7 @@ function ProjectDetail({project:p,store,onBack,initialTab,goProject}){
                   {grp.status==='IN_PROGRESS'&&buf.daysRemaining!==null&&<div className="pg-metric" style={{color:hCol}}>
                     {buf.isOverdue?'Просрочено на '+Math.abs(buf.daysRemaining)+' дн.':'Осталось: '+buf.daysRemaining+' дн.'}
                   </div>}
+                  {grp.status==='ON_HOLD'&&<div className="pg-metric" style={{color:'var(--amber)'}}>⏸ На паузе{grp.phases.some(ph=>ph.hold_days>0)?' (было на паузе '+grp.phases.reduce((s,ph)=>s+(Number(ph.hold_days)||0),0)+' дн.)':''}</div>}
                 </div>
 
                 {grp.status==='IN_PROGRESS'&&<div>
