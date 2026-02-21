@@ -100,7 +100,7 @@ let state={
   open:false,
   showSettings:false,
   loading:false,
-  messages:[{role:'assistant',content:'Гав! 🐾 Я Джеки — ваш помощник Paper Planes.\nМогу ответить на вопросы по методологии, проектам и базе знаний.\n\nПримеры:\n• «Как проводить BPM-1 опросы?»\n• «Что такое репрезентативность выборки?»\n• «Какие операции в BPM-1?»\n• «Как выбрать метод сбора анкет?»'}],
+  messages:[{role:'assistant',content:'Гав! 🐾 Я Джеки — ваш помощник Paper Planes.\nМогу ответить на вопросы по методологии, проектам и базе знаний.\nА ещё умею ходить по ссылкам — просто вставьте URL!\n\nПримеры:\n• «Как проводить BPM-1 опросы?»\n• «Что такое репрезентативность выборки?»\n• «Вот ссылка на Notion — проанализируй»\n• «Прочитай эту статью: https://...»'}],
   input:''
 };
 
@@ -172,6 +172,90 @@ function searchKB(query){
   return{hits,context:ctx};
 }
 
+/* ---- Web content fetching ---- */
+const _urlCache={};
+const URL_RE=/https?:\/\/[^\s<>"')\]]+/gi;
+
+function extractUrls(text){
+  const matches=text.match(URL_RE);
+  if(!matches)return[];
+  return [...new Set(matches)].slice(0,3); /* max 3 URLs per message */
+}
+
+function htmlToText(html){
+  /* Remove scripts, styles, nav, footer */
+  let t=html.replace(/<script[\s\S]*?<\/script>/gi,'')
+    .replace(/<style[\s\S]*?<\/style>/gi,'')
+    .replace(/<nav[\s\S]*?<\/nav>/gi,'')
+    .replace(/<footer[\s\S]*?<\/footer>/gi,'')
+    .replace(/<header[\s\S]*?<\/header>/gi,'');
+  /* Extract title */
+  const titleMatch=t.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const title=titleMatch?titleMatch[1].trim():'';
+  /* Get body or article content */
+  const articleMatch=t.match(/<article[\s\S]*?>([\s\S]*?)<\/article>/i);
+  const mainMatch=t.match(/<main[\s\S]*?>([\s\S]*?)<\/main>/i);
+  const bodyMatch=t.match(/<body[\s\S]*?>([\s\S]*?)<\/body>/i);
+  let content=articleMatch?articleMatch[1]:mainMatch?mainMatch[1]:bodyMatch?bodyMatch[1]:t;
+  /* Strip remaining HTML tags */
+  content=content.replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&')
+    .replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'")
+    .replace(/\s{2,}/g,' ').trim();
+  /* Limit to ~4000 chars */
+  if(content.length>4000)content=content.substring(0,4000)+'... [обрезано]';
+  return (title?'Заголовок: '+title+'\n':'')+content;
+}
+
+/* Notion pages: convert notion.so URL to public API-friendly format */
+function isNotionUrl(url){
+  return url.includes('notion.so')||url.includes('notion.site');
+}
+
+const CORS_PROXIES=[
+  url=>'https://api.allorigins.win/raw?url='+encodeURIComponent(url),
+  url=>'https://corsproxy.io/?'+encodeURIComponent(url),
+  url=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url)
+];
+
+async function fetchUrlContent(url){
+  /* Check cache */
+  if(_urlCache[url])return _urlCache[url];
+
+  /* Try direct fetch first */
+  const attempts=[
+    ()=>fetch(url,{mode:'cors',headers:{'Accept':'text/html,application/json'}}).then(r=>{if(!r.ok)throw new Error(r.status);return r.text();}),
+    ...CORS_PROXIES.map(proxy=>()=>fetch(proxy(url)).then(r=>{if(!r.ok)throw new Error(r.status);return r.text();}))
+  ];
+
+  for(const attempt of attempts){
+    try{
+      const html=await attempt();
+      if(html&&html.length>100){
+        const text=htmlToText(html);
+        _urlCache[url]=text;
+        return text;
+      }
+    }catch(e){/* try next proxy */}
+  }
+  return null;
+}
+
+async function fetchAllUrls(urls){
+  if(!urls.length)return'';
+  const results=await Promise.allSettled(urls.map(u=>fetchUrlContent(u)));
+  let ctx='\n\nСОДЕРЖИМОЕ ВНЕШНИХ ССЫЛОК:\n';
+  let found=false;
+  results.forEach((r,i)=>{
+    if(r.status==='fulfilled'&&r.value){
+      ctx+='\n--- Ссылка: '+urls[i]+' ---\n'+r.value+'\n';
+      found=true;
+    }else{
+      ctx+='\n--- Ссылка: '+urls[i]+' — не удалось загрузить ---\n';
+    }
+  });
+  return found?ctx:'';
+}
+
 /* ---- Build context from portfolio data ---- */
 function getPortfolioContext(){
   const d=getPortfolioData();
@@ -201,7 +285,11 @@ const SYSTEM_PROMPT=`Ты — Джеки, AI-помощник системы у�
 - P&L: выручка (ACCRUED+PAID) → нетто → − накладные → валовая → − C1-C4 → грязная → − C5 → чистая
 - Грейды: C1 (джун) → C5 (партнёр)
 
-Отвечай на русском, структурированно, со ссылками на базу знаний.`;
+ВНЕШНИЕ ССЫЛКИ:
+Если в контексте есть раздел "СОДЕРЖИМОЕ ВНЕШНИХ ССЫЛОК" — ты ДОЛЖЕН использовать этот контент для ответа. Анализируй загруженный контент, извлекай ключевую информацию, отвечай по существу. Указывай источник: 🔗 [URL].
+Если пользователь прислал ссылку на Notion, Google Doc или любой веб-ресурс — проанализируй загруженное содержимое и ответь на основе него.
+
+Отвечай на русском, структурированно, со ссылками на базу знаний и внешние источники.`;
 
 /* ---- API call ---- */
 async function sendToAPI(userText){
@@ -211,12 +299,25 @@ async function sendToAPI(userText){
   state.messages.push({role:'user',content:userText});
   state.input='';
   state.loading=true;
+  state.loadingLabel='Ищу в базе знаний...';
   render();
 
   try{
     const rag=searchKB(userText);
     const portfolioCtx=getPortfolioContext();
-    const contextStr=portfolioCtx+(rag.context||'');
+
+    /* Fetch external URLs if present */
+    const urls=extractUrls(userText);
+    let webCtx='';
+    if(urls.length>0){
+      state.loadingLabel='🌐 Загружаю '+urls.length+' ссылк'+(urls.length===1?'у':urls.length<5?'и':'ок')+'...';
+      render();
+      webCtx=await fetchAllUrls(urls);
+      state.loadingLabel='🤔 Анализирую контент...';
+      render();
+    }
+
+    const contextStr=portfolioCtx+(rag.context||'')+webCtx;
     const contextMsg={role:'user',content:'[Контекст:\n'+contextStr+']'};
     const apiMsgs=[contextMsg,...state.messages.slice(-20).map(m=>({role:m.role,content:m.content}))];
 
@@ -232,8 +333,11 @@ async function sendToAPI(userText){
     const data=await resp.json();
     let text=data.content?.[0]?.text||'(пустой ответ)';
 
-    if(rag.hits.length>0){
-      text+='\n\n📚 **Источники из базы знаний:**\n'+rag.hits.map(h=>'• '+h.title+(h.project_code?' ['+h.project_code+']':'')+' — *Знания → Материалы*').join('\n');
+    if(rag.hits.length>0||urls.length>0){
+      let sources='\n\n📚 **Источники:**\n';
+      if(rag.hits.length>0)sources+=rag.hits.map(h=>'• 📖 '+h.title+(h.project_code?' ['+h.project_code+']':'')+' — *Знания → Материалы*').join('\n');
+      if(urls.length>0)sources+=(rag.hits.length>0?'\n':'')+urls.map(u=>'• 🔗 '+u).join('\n');
+      text+=sources;
     }
     state.messages.push({role:'assistant',content:text});
   }catch(err){
@@ -298,11 +402,11 @@ function render(){
   }).join('');
 
   if(state.loading){
-    msgsHtml+='<div class="ai-msg assistant"><div class="ai-loading"><span class="label">Ищу в базе знаний...</span><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div></div>';
+    msgsHtml+='<div class="ai-msg assistant"><div class="ai-loading"><span class="label">'+(state.loadingLabel||'Ищу в базе знаний...')+'</span><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div></div>';
   }
 
   const suggestions=state.messages.length<=1&&!state.loading?
-    ['Как проводить BPM-1?','Что такое репрезентативность?','Какие операции в BPM-1?','Как делать пилотаж анкеты?','Расскажи про CJM-опросы'].map(q=>
+    ['Как проводить BPM-1?','Что такое репрезентативность?','Какие операции в BPM-1?','Проанализируй ссылку...','Расскажи про CJM-опросы'].map(q=>
       '<span class="ai-sug" data-sug="'+escHtml(q)+'">'+escHtml(q)+'</span>'
     ).join(''):'';
 
