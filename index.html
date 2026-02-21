@@ -1297,6 +1297,30 @@ const getPersonMonthSalary=(p,ym)=>{const yr=+ym.slice(0,4),mo=+ym.slice(5,7),dm
 
 function Modal({children,onClose}){return <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose()}}><div className="modal">{children}</div></div>;}
 
+/* Helper: sanitize data — convert unexpected objects in leaf fields to strings */
+const _LEAF_FIELDS=new Set(['name','code','status','description','comment','notes','source','date','month','rg','category','cls','format','responsible','label','type','amount','amount_plan','amount_fact','cf_type','tax_rate','salary_monthly','grade','department','hire_date','fire_date','email','phone','planned_date','actual_date','expected_week_monday','payment_date','title','country','city','address','inn','contact_person','contact_email','contact_phone','payment_type','accrued_date','nd_period_start','nd_period_end','nd_payment_period']);
+function _sanitizeObj(obj){
+  if(!obj||typeof obj!=='object'||Array.isArray(obj))return obj;
+  const out={};
+  for(const k of Object.keys(obj)){
+    const v=obj[k];
+    if(v===null||v===undefined){out[k]=v;}
+    else if(Array.isArray(v)){out[k]=v.map(item=>typeof item==='object'&&item!==null&&!Array.isArray(item)?_sanitizeObj(item):item);}
+    else if(typeof v==='object'&&_LEAF_FIELDS.has(k)){out[k]=String(v.name||v.value||v.label||v.start||v.text||JSON.stringify(v));}
+    else if(typeof v==='object'){out[k]=_sanitizeObj(v);}
+    else{out[k]=v;}
+  }
+  return out;
+}
+function _sanitize(d){
+  if(!d||typeof d!=='object')return d;
+  const result={...d};
+  ['projects','clients','persons','overhead_registry','kb_budget','recommendations','knowledgeItems','crm_deals','icf_deals','staging_deals'].forEach(key=>{
+    if(Array.isArray(result[key])){result[key]=result[key].map(item=>_sanitizeObj(item));}
+  });
+  return result;
+}
+
 function useStore(){
   const LS_KEY='pp_portfolio_data_v2';
   const [data,setData]=useState(()=>{
@@ -1611,7 +1635,7 @@ function useStore(){
             parsed.metrics_maps=mm;
             parsed._migMetricsLinksNorm=true;
           }
-          return parsed;
+          return _sanitize(parsed);
         }
       }
     }catch(e){console.warn('LS load error',e);}
@@ -1630,33 +1654,6 @@ function useStore(){
   const [sbLoaded,setSbLoaded]=useState(!_sb);
   const _sbTimer=useRef(null);
   const _sbSkipSave=useRef(false);
-
-  /* Helper: sanitize data — convert unexpected objects/arrays in leaf fields to strings */
-  const _sanitize=(d)=>{
-    if(!d||typeof d!=='object')return d;
-    const LEAF_FIELDS=['name','code','status','description','comment','notes','source','date','month','rg','category','cls','format','responsible','label','type','amount','amount_plan','amount_fact','cf_type','tax_rate','salary_monthly','grade','department','hire_date','fire_date','email','phone','planned_date','actual_date','expected_week_monday','payment_date','title'];
-    const cleanObj=(obj)=>{
-      if(!obj||typeof obj!=='object'||Array.isArray(obj))return obj;
-      const out={};
-      for(const k of Object.keys(obj)){
-        const v=obj[k];
-        if(v===null||v===undefined){out[k]=v;}
-        else if(Array.isArray(v)){out[k]=v.map(item=>typeof item==='object'&&item!==null&&!Array.isArray(item)?cleanObj(item):item);}
-        else if(typeof v==='object'&&LEAF_FIELDS.includes(k)){out[k]=String(v.name||v.value||v.label||v.start||JSON.stringify(v));}
-        else if(typeof v==='object'){out[k]=cleanObj(v);}
-        else{out[k]=v;}
-      }
-      return out;
-    };
-    const result={...d};
-    ['projects','clients','persons'].forEach(key=>{
-      if(Array.isArray(result[key])){result[key]=result[key].map(item=>cleanObj(item));}
-    });
-    ['overhead_registry','kb_budget'].forEach(key=>{
-      if(Array.isArray(result[key])){result[key]=result[key].map(item=>cleanObj(item));}
-    });
-    return result;
-  };
 
   /* Helper: compute data richness score */
   const _dataScore=(d)=>{if(!d||typeof d!=='object')return 0;return (d.projects||[]).length*10+(d.clients||[]).length*5+(d.persons||[]).length*3+(d.projects||[]).reduce((s,p)=>(s+(p.payments||[]).length*2+(p.tasks||[]).length+(p.phases||[]).length+(p.project_overheads||[]).length*2+(p.time_entries||[]).length*2+(p.overheads||[]).length+(p.timeEntries||[]).length),0);};
