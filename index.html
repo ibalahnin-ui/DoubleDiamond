@@ -12582,7 +12582,8 @@ function AiAssistant({store,page}){
   const [msgs,setMsgs]=useState([{role:'assistant',content:'Привет! Я AI-ассистент Double Diamond. Могу помочь с анализом портфеля, методологией BPM/BPI, финансами проектов. Задавайте вопросы!'}]);
   const [input,setInput]=useState('');
   const [loading,setLoading]=useState(false);
-  const [apiKey,setApiKey]=useState(()=>localStorage.getItem('pp_ai_api_key')||'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');
+  const _AI_DEFAULT_KEY='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';
+  const [apiKey,setApiKey]=useState(()=>{const stored=localStorage.getItem('pp_ai_api_key');if(stored&&stored.startsWith('sk-ant-')&&stored===_AI_DEFAULT_KEY)return stored;if(!stored||!stored.startsWith('sk-ant-'))return _AI_DEFAULT_KEY;return stored;});
   const [showSettings,setShowSettings]=useState(false);
   const [proxyUrl,setProxyUrl]=useState(()=>localStorage.getItem('pp_ai_proxy_url')||'');
   const scrollRef=useRef(null);
