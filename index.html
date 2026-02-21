@@ -1852,6 +1852,49 @@ function useStore(){
       }).catch(()=>{setSbStatus('error');setSbLoaded(true);});
   }else{setSbStatus('offline');}};
 
+  /* === Chat/Notifications real-time polling (master mode only, every 5s) === */
+  const _pollRef=React.useRef(null);
+  const _pollBusy=React.useRef(false);
+  useEffect(()=>{
+    if(_syncMode==='local'||!_sb)return;
+    const poll=()=>{
+      if(_pollBusy.current)return;
+      _pollBusy.current=true;
+      _sb.from('app_data').select('payload').eq('id',1).single()
+        .then(({data:row,error})=>{
+          _pollBusy.current=false;
+          if(error||!row||!row.payload)return;
+          const remote=row.payload;
+          const remoteMsgs=remote.chat_messages||[];
+          const remoteNotifs=remote.notifications||[];
+          /* Merge chat_messages by id — add messages we don't have locally */
+          setData(prev=>{
+            const localMsgIds=new Set((prev.chat_messages||[]).map(m=>m.id));
+            const newMsgs=remoteMsgs.filter(m=>!localMsgIds.has(m.id));
+            const localNotifIds=new Set((prev.notifications||[]).map(n=>n.id));
+            const newNotifs=remoteNotifs.filter(n=>!localNotifIds.has(n.id));
+            /* Also sync read-status for notifications: if remote has read=true, update locally */
+            const remoteReadMap={};remoteNotifs.forEach(n=>{if(n.read)remoteReadMap[n.id]=true;});
+            if(newMsgs.length===0&&newNotifs.length===0&&!Object.keys(remoteReadMap).length)return prev;
+            const mergedNotifs=[...(prev.notifications||[]).map(n=>remoteReadMap[n.id]?{...n,read:true}:n),...newNotifs];
+            if(newMsgs.length===0&&newNotifs.length===0&&mergedNotifs.length===(prev.notifications||[]).length){
+              /* Check if any read-status actually changed */
+              const changed=(prev.notifications||[]).some(n=>!n.read&&remoteReadMap[n.id]);
+              if(!changed)return prev;
+            }
+            if(newMsgs.length>0)console.log('[Poll] +'+newMsgs.length+' new chat message(s)');
+            if(newNotifs.length>0)console.log('[Poll] +'+newNotifs.length+' new notification(s)');
+            return {...prev,
+              chat_messages:[...(prev.chat_messages||[]),...newMsgs],
+              notifications:mergedNotifs
+            };
+          });
+        }).catch(()=>{_pollBusy.current=false;});
+    };
+    _pollRef.current=setInterval(poll,1000);
+    return ()=>clearInterval(_pollRef.current);
+  },[sbLoaded]);
+
   /* One-time migration: Ensure 'Ольга Лукина' FK project exists */
   useEffect(()=>{
     const prjs=data.projects||[];
