@@ -1431,16 +1431,6 @@ function _sanitize(d){
   return result;
 }
 
-/* Helper: apply _deletedProjectIds / _deletedPersonIds protection after Supabase merge */
-function _applyDeletionProtection(merged,prev){
-  const delP=new Set([...(prev._deletedProjectIds||[]),...(merged._deletedProjectIds||[])]);
-  const delPers=new Set([...(prev._deletedPersonIds||[]),...(merged._deletedPersonIds||[])]);
-  if(delP.size>0)merged.projects=(merged.projects||[]).filter(p=>!delP.has(p.id));
-  if(delPers.size>0)merged.persons=(merged.persons||[]).filter(p=>!delPers.has(p.id));
-  merged._deletedProjectIds=[...delP];
-  merged._deletedPersonIds=[...delPers];
-  return merged;
-}
 function useStore(){
   const LS_KEY='pp_portfolio_data_v2';
   const [data,setData]=useState(()=>{
@@ -1812,16 +1802,15 @@ function useStore(){
             (remoteArr||[]).forEach(item=>{if(!map.has(item.id))map.set(item.id,item);});
             return Array.from(map.values());
           };
-          /* _applyDeletionProtection defined at useStore level, see above */
           if(sbScore>lsScore){
             _sbSkipSave.current=true;
-            setData(prev=>_applyDeletionProtection({...sbData},prev));
+            setData(prev=>({...sbData}));
             setTimeout(()=>{_sbSkipSave.current=false;},500);
             console.log('[Sync/Master] Using Supabase data (richer: '+sbScore+' vs '+lsScore+')');
           } else if(lsScore>sbScore&&(data.projects||[]).length<=5&&(sbData.projects||[]).length>10){
             console.warn('[Sync/Master] PROTECTION: localStorage looks empty, using Supabase');
             _sbSkipSave.current=true;
-            setData(prev=>_applyDeletionProtection({...sbData},prev));
+            setData(prev=>({...sbData}));
             setTimeout(()=>{_sbSkipSave.current=false;},500);
           } else {
             /* Keeping localStorage data, but ALWAYS merge shared arrays (chat, notifications) from Supabase */
@@ -1876,12 +1865,12 @@ function useStore(){
           const lsScore=_dataScore(data);
           const sbP=(_rcData.projects||[]).length;const lsP=(data.projects||[]).length;
           if(sbScore>lsScore){
-            _sbSkipSave.current=true;setData(prev=>_applyDeletionProtection({..._rcData},prev));
+            _sbSkipSave.current=true;setData(_rcData);
             setTimeout(()=>{_sbSkipSave.current=false;},500);
             console.log('[Reconnect] Using Supabase data (richer)');
           } else if(lsScore>sbScore&&lsP<=5&&sbP>10){
             console.warn('[Reconnect] PROTECTION: localStorage looks like SEED, using Supabase');
-            _sbSkipSave.current=true;setData(prev=>_applyDeletionProtection({..._rcData},prev));
+            _sbSkipSave.current=true;setData(_rcData);
             setTimeout(()=>{_sbSkipSave.current=false;},500);
           } else {
             /* Still merge chat arrays from Supabase */
