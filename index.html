@@ -3609,7 +3609,17 @@ function useStore(){
     if(!d.chat_current_user)d.chat_current_user={id:'me',name:'Илья',avatar:'И'};
     return d;
   };
-  const addChatChannel=(ch)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_channels=[...nd.chat_channels,{id:uuid(),created_at:now(),type:'public',pinned:false,...ch}];return nd;});showToast('Канал создан');};
+  const addChatChannel=(ch)=>{setData(d=>{const nd={..._ensureChat({...d})};
+    /* For DM channels: deterministic id based on sorted pair of user ids */
+    let chId=uuid();
+    if(ch.type==='dm'&&ch.person_id){
+      const me=_getChatAuthor();
+      const pair=[me.id,ch.person_id].sort().join('_');
+      chId='dm_'+pair;
+      /* If channel already exists, don't create duplicate */
+      if(nd.chat_channels.some(c=>c.id===chId))return nd;
+    }
+    nd.chat_channels=[...nd.chat_channels,{id:chId,created_at:now(),type:'public',pinned:false,...ch}];return nd;});showToast('Канал создан');};
   const updateChatChannel=(id,upd)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_channels=nd.chat_channels.map(c=>c.id===id?{...c,...upd}:c);return nd;});};
   const deleteChatChannel=(id)=>{setData(d=>{const nd={..._ensureChat({...d})};nd.chat_channels=nd.chat_channels.filter(c=>c.id!==id);nd.chat_messages=nd.chat_messages.filter(m=>m.channel_id!==id);return nd;});showToast('Канал удалён');};
   const _getChatAuthor=()=>{try{const s=JSON.parse(sessionStorage.getItem('pp_auth_session'));if(s)return{id:s.user_id,name:s.name||s.login,avatar:(s.name||s.login||'?')[0].toUpperCase()};}catch(e){}return{id:'me',name:'Илья',avatar:'И'};};
@@ -11812,7 +11822,20 @@ function ChatView({store}){
             <div style={{width:24,height:24,borderRadius:'50%',background:'var(--bg4)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'var(--text)'}}>{(c.name||'?')[0]}</div><span>{c.name}</span>
           </div>)}
           <div style={{padding:'8px 14px'}}>
-            <button onClick={()=>{const name=prompt('Имя собеседника:');if(name)store.addChatChannel({name,type:'dm'});}} style={{width:'100%',padding:'6px',background:'var(--bg3)',border:'1px dashed var(--border)',borderRadius:6,color:'var(--text2)',fontSize:11,cursor:'pointer'}}>+ Новый личный чат</button>
+            <button onClick={()=>{
+              const activePers=persons.filter(pp=>pp.is_active);
+              const nameList=activePers.map((pp,i)=>(i+1)+'. '+pp.name).join('\n');
+              const choice=prompt('Выберите номер собеседника:\n'+nameList);
+              if(!choice)return;
+              const idx=parseInt(choice,10)-1;
+              if(idx>=0&&idx<activePers.length){
+                const p=activePers[idx];
+                const myId=chatData.currentUser.id;
+                const dmId='dm_'+[myId,p.id].sort().join('_');
+                const existing=chatData.channels.find(c=>c.id===dmId);
+                if(existing){selectCh(existing.id);}else{store.addChatChannel({name:p.name,type:'dm',person_id:p.id});selectCh(dmId);}
+              }
+            }} style={{width:'100%',padding:'6px',background:'var(--bg3)',border:'1px dashed var(--border)',borderRadius:6,color:'var(--text2)',fontSize:11,cursor:'pointer'}}>+ Новый личный чат</button>
           </div>
         </div>}
 
@@ -11822,13 +11845,18 @@ function ChatView({store}){
             <div style={{width:24,height:24,borderRadius:'50%',background:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff'}}>{chatData.currentUser.avatar||'И'}</div>
             <span style={{fontWeight:600,color:'var(--accent2)'}}>{chatData.currentUser.name} (вы)</span>
           </div>
-          {persons.filter(p=>p.is_active).slice(0,50).map(p=><div key={p.id} style={{padding:'5px 14px',display:'flex',alignItems:'center',gap:8,fontSize:12,cursor:'pointer'}} onClick={()=>{
-            const existing=dmChannels.find(c=>c.person_id===p.id);
-            if(existing){selectCh(existing.id);}else{store.addChatChannel({name:p.name,type:'dm',person_id:p.id});}}}>
-            <div style={{width:24,height:24,borderRadius:'50%',background:'var(--bg4)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'var(--text)'}}>{(p.name||'?')[0]}</div>
-            <span style={{color:'var(--text)'}}>{p.name}</span>
-            <span style={{fontSize:10,color:'var(--text2)',marginLeft:'auto'}}>{(p.departments||[p.department]).filter(Boolean).join(', ')}</span>
-          </div>)}
+          {persons.filter(p=>p.is_active).slice(0,50).map(p=>{
+            const myId=chatData.currentUser.id;
+            const dmId='dm_'+[myId,p.id].sort().join('_');
+            const existing=chatData.channels.find(c=>c.id===dmId)||dmChannels.find(c=>c.person_id===p.id);
+            return <div key={p.id} style={{padding:'5px 14px',display:'flex',alignItems:'center',gap:8,fontSize:12,cursor:'pointer'}} onClick={()=>{
+              if(existing){selectCh(existing.id);}else{store.addChatChannel({name:p.name,type:'dm',person_id:p.id});selectCh(dmId);}}}>
+              <div style={{width:24,height:24,borderRadius:'50%',background:'var(--bg4)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'var(--text)'}}>{(p.name||'?')[0]}</div>
+              <span style={{color:'var(--text)'}}>{p.name}</span>
+              {existing&&<span style={{fontSize:8,color:'var(--accent2)',marginLeft:2}}>●</span>}
+              <span style={{fontSize:10,color:'var(--text2)',marginLeft:'auto'}}>{(p.departments||[p.department]).filter(Boolean).join(', ')}</span>
+            </div>;})}
+
         </div>}
       </div>
     </div>
