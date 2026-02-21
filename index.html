@@ -5,8 +5,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Portfolio Management System — Double Diamond</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
@@ -2863,10 +2863,10 @@ function useStore(){
     if(!proj)return;
     const contractStart=proj.start_date||'';
     const contractEnd=proj.target_end_date||proj.end_date||'';
-    /* Validate: phase dates must not exceed contract bounds */
-    if(dates.period_start&&contractStart&&dates.period_start<contractStart){showToast('Дата старта фазы не может быть раньше старта контракта ('+contractStart+')');return;}
-    if(dates.period_end&&contractEnd&&dates.period_end>contractEnd){showToast('Дата конца фазы не может быть позже конца контракта ('+contractEnd+')');return;}
-    if(dates.period_start&&dates.period_end&&dates.period_start>dates.period_end){showToast('Дата старта не может быть позже даты конца');return;}
+    /* Soft validate: warn but allow saving */
+    if(dates.period_start&&contractStart&&dates.period_start<contractStart){showToast('⚠️ Дата раньше старта контракта ('+contractStart+')');}
+    if(dates.period_end&&contractEnd&&dates.period_end>contractEnd){showToast('⚠️ Дата позже конца контракта ('+contractEnd+')');}
+    if(dates.period_start&&dates.period_end&&dates.period_start>dates.period_end){showToast('⚠️ Старт позже конца — проверьте даты');}
     setData(d=>({...d,projects:d.projects.map(p=>{
       if(p.id!==projId)return p;
       return {...p,phases:(p.phases||[]).map(ph=>ph.id===phaseId?{...ph,...dates}:ph)};
