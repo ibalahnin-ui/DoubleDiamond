@@ -12491,7 +12491,7 @@ function App(){
   if(!store.sbLoaded) return <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',color:'var(--text)',flexDirection:'column',gap:12}}>
     <div style={{width:40,height:40,border:'3px solid var(--border)',borderTopColor:'var(--accent)',borderRadius:'50%',animation:'spin .8s linear infinite'}}/>
     <div style={{fontSize:14}}>Загрузка из Supabase...</div>
-    <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+    <style>{'@keyframes spin{to{transform:rotate(360deg)}}@keyframes aiBubblePulse{0%,100%{box-shadow:0 4px 24px rgba(99,102,241,.5),0 0 40px rgba(99,102,241,.2)}50%{box-shadow:0 4px 32px rgba(99,102,241,.7),0 0 60px rgba(99,102,241,.35)}}@keyframes aiDot{0%,80%,100%{transform:scale(0);opacity:.5}40%{transform:scale(1);opacity:1}}'}</style>
   </div>;
 
   /* Auth gate — after all hooks, before main render */
@@ -12572,7 +12572,173 @@ function App(){
     })()}
     {store.toast&&<div className="toast">{store.toast}</div>}
     {showSbConfig&&<SupabaseConfigModal onConnect={()=>{store.reconnectSb();setShowSbConfig(false);}} onSkip={()=>setShowSbConfig(false)}/>}
+    <AiAssistant store={store} page={page}/>
   </div>;
+}
+
+/* ===== AI ASSISTANT COMPONENT ===== */
+function AiAssistant({store,page}){
+  const [open,setOpen]=useState(false);
+  const [msgs,setMsgs]=useState([{role:'assistant',content:'Привет! Я AI-ассистент Double Diamond. Могу помочь с анализом портфеля, методологией BPM/BPI, финансами проектов. Задавайте вопросы!'}]);
+  const [input,setInput]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [apiKey,setApiKey]=useState(()=>localStorage.getItem('pp_ai_api_key')||'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');
+  const [showSettings,setShowSettings]=useState(false);
+  const [proxyUrl,setProxyUrl]=useState(()=>localStorage.getItem('pp_ai_proxy_url')||'');
+  const scrollRef=useRef(null);
+  const inputRef=useRef(null);
+
+  useEffect(()=>{if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight;},[msgs]);
+  useEffect(()=>{if(open&&inputRef.current)inputRef.current.focus();},[open]);
+
+  const getContext=()=>{
+    const d=store.data;
+    const projects=(d.projects||[]).filter(p=>p.status==='ACTIVE');
+    const persons=(d.persons||[]).filter(p=>!p.fire_date);
+    const clients=d.clients||[];
+    const summary={
+      activeProjects:projects.length,
+      totalPersons:persons.length,
+      totalClients:clients.length,
+      projectsList:projects.slice(0,30).map(p=>p.code+' ('+p.work_group+', '+(p.project_type||'OD')+', контракт: '+(p.total_contract_value?Math.round(p.total_contract_value/1000)+'k':'н/д')+')').join('; '),
+      workGroups:[...new Set(projects.map(p=>p.work_group).filter(Boolean))].join(', '),
+      currentPage:page
+    };
+    return JSON.stringify(summary);
+  };
+
+  const SYSTEM_PROMPT=`Ты — AI-ассистент системы управления портфелем проектов Paper Planes (Double Diamond).
+
+МЕТОДОЛОГИЯ:
+- Double Diamond: 4 фазы — Explore (BPM: добыча данных), Define (BPA: сборка), Develop (BPI: внедрение), Deliver (BPO: организация)
+- Треки BPM: опросы, интервью сотрудников, интервью клиентов, анализ БД, тайный покупатель, desk research, market-sizing, анализ БП, компетенции, CRM, ЦМД
+- Грейды команды: C1 (джун) → C5 (партнёр)
+- Триаж: оценка проектов по срочности, масштабу, стоимости, сложности → приоритет
+
+ФИНАНСЫ:
+- P&L: выручка (ACCRUED+PAID) → нетто → минус накладные → валовая → минус C1-C4 → грязная → минус C5 → чистая
+- Кэшфлоу: только PAID × (1 - налог)
+- ДЗ: ACCRUED но не PAID
+- Рабочие группы: РГ1 (основная), РГ2, ФК (Фулл Кит)
+
+Ты работаешь внутри приложения. Отвечай кратко, по делу, на русском. Используй знание контекста портфеля.`;
+
+  const sendMessage=async()=>{
+    if(!input.trim()||loading)return;
+    if(!apiKey){setShowSettings(true);return;}
+    const userMsg={role:'user',content:input.trim()};
+    const newMsgs=[...msgs,userMsg];
+    setMsgs(newMsgs);
+    setInput('');
+    setLoading(true);
+
+    try{
+      const contextMsg={role:'user',content:'[Контекст портфеля: '+getContext()+']'};
+      const apiMsgs=[contextMsg,...newMsgs.slice(-20).map(m=>({role:m.role,content:m.content}))];
+
+      const endpoint=proxyUrl||'https://api.anthropic.com/v1/messages';
+      const headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'};
+      if(!proxyUrl){headers['anthropic-dangerous-direct-browser-access']='true';}
+
+      const resp=await fetch(endpoint,{
+        method:'POST',
+        headers,
+        body:JSON.stringify({
+          model:'claude-haiku-4-5-20251001',
+          max_tokens:1024,
+          system:SYSTEM_PROMPT,
+          messages:apiMsgs
+        })
+      });
+
+      if(!resp.ok){
+        const errText=await resp.text();
+        throw new Error('API '+resp.status+': '+errText.slice(0,200));
+      }
+
+      const data=await resp.json();
+      const assistantText=data.content?.[0]?.text||'(пустой ответ)';
+      setMsgs(prev=>[...prev,{role:'assistant',content:assistantText}]);
+    }catch(err){
+      setMsgs(prev=>[...prev,{role:'assistant',content:'⚠️ Ошибка: '+err.message}]);
+    }finally{
+      setLoading(false);
+    }
+  };
+
+  const _pulse=open?{}:{animation:'aiBubblePulse 2s ease-in-out infinite'};
+
+  if(showSettings){
+    return <>
+      <div style={{position:'fixed',bottom:24,right:24,zIndex:10001,width:380,background:'linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)',borderRadius:16,boxShadow:'0 20px 60px rgba(0,0,0,.5)',border:'1px solid rgba(99,102,241,.3)',padding:24,color:'#e0e0ff'}}>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:16,display:'flex',alignItems:'center',gap:8}}>⚙️ Настройка AI-ассистента</div>
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:11,color:'#8888cc',display:'block',marginBottom:4}}>API Key (Anthropic)</label>
+          <input type="password" value={apiKey} onChange={e=>{setApiKey(e.target.value);localStorage.setItem('pp_ai_api_key',e.target.value);}} placeholder="sk-ant-..." style={{width:'100%',padding:'8px 12px',background:'rgba(255,255,255,.08)',border:'1px solid rgba(99,102,241,.3)',borderRadius:8,color:'#e0e0ff',fontSize:12,boxSizing:'border-box'}}/>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{fontSize:11,color:'#8888cc',display:'block',marginBottom:4}}>Proxy URL (опционально)</label>
+          <input value={proxyUrl} onChange={e=>{setProxyUrl(e.target.value);localStorage.setItem('pp_ai_proxy_url',e.target.value);}} placeholder="https://your-worker.workers.dev/v1/messages" style={{width:'100%',padding:'8px 12px',background:'rgba(255,255,255,.08)',border:'1px solid rgba(99,102,241,.3)',borderRadius:8,color:'#e0e0ff',fontSize:12,boxSizing:'border-box'}}/>
+          <div style={{fontSize:9,color:'#6666aa',marginTop:4}}>Для обхода CORS. Без прокси — прямой вызов API (может не работать из браузера)</div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={()=>setShowSettings(false)} style={{flex:1,padding:'8px',background:'rgba(99,102,241,.2)',border:'1px solid rgba(99,102,241,.4)',borderRadius:8,color:'#a5b4fc',cursor:'pointer',fontSize:12,fontWeight:600}}>Готово</button>
+        </div>
+      </div>
+      <div onClick={()=>setShowSettings(false)} style={{position:'fixed',bottom:24,right:24,zIndex:9999,width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',boxShadow:'0 4px 20px rgba(99,102,241,.5)',fontSize:24}}>⚙️</div>
+    </>;
+  }
+
+  return <>
+    {/* Chat panel */}
+    <div style={{position:'fixed',bottom:90,right:24,zIndex:10000,width:420,maxHeight:'70vh',display:'flex',flexDirection:'column',background:'linear-gradient(180deg,#0f0f23 0%,#1a1a2e 100%)',borderRadius:16,boxShadow:'0 20px 60px rgba(0,0,0,.5),0 0 40px rgba(99,102,241,.15)',border:'1px solid rgba(99,102,241,.2)',overflow:'hidden',transform:open?'translateY(0) scale(1)':'translateY(20px) scale(0.95)',opacity:open?1:0,pointerEvents:open?'auto':'none',transition:'all .3s cubic-bezier(.4,0,.2,1)'}}>
+      {/* Header */}
+      <div style={{padding:'14px 16px',background:'linear-gradient(90deg,rgba(99,102,241,.15),rgba(139,92,246,.1))',borderBottom:'1px solid rgba(99,102,241,.2)',display:'flex',alignItems:'center',gap:10}}>
+        <div style={{width:32,height:32,borderRadius:10,background:'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>🤖</div>
+        <div>
+          <div style={{fontSize:13,fontWeight:700,color:'#e0e0ff'}}>AI-ассистент</div>
+          <div style={{fontSize:10,color:'#6366f1'}}>Claude Haiku · Double Diamond</div>
+        </div>
+        <div style={{marginLeft:'auto',display:'flex',gap:6}}>
+          <span onClick={()=>setShowSettings(true)} style={{cursor:'pointer',fontSize:14,opacity:.6,padding:4}} title="Настройки">⚙️</span>
+          <span onClick={()=>{setMsgs([{role:'assistant',content:'Чат очищен. Чем могу помочь?'}]);}} style={{cursor:'pointer',fontSize:14,opacity:.6,padding:4}} title="Очистить">🗑️</span>
+          <span onClick={()=>setOpen(false)} style={{cursor:'pointer',fontSize:16,opacity:.6,padding:4}}>✕</span>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div ref={scrollRef} style={{flex:1,overflowY:'auto',padding:'12px 14px',display:'flex',flexDirection:'column',gap:10,minHeight:200,maxHeight:'50vh'}}>
+        {msgs.map((m,i)=><div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
+          <div style={{maxWidth:'85%',padding:'10px 14px',borderRadius:m.role==='user'?'14px 14px 4px 14px':'14px 14px 14px 4px',background:m.role==='user'?'linear-gradient(135deg,#6366f1,#4f46e5)':'rgba(255,255,255,.06)',color:m.role==='user'?'#fff':'#c8c8e0',fontSize:12,lineHeight:1.5,whiteSpace:'pre-wrap',wordBreak:'break-word',border:m.role==='user'?'none':'1px solid rgba(255,255,255,.08)'}}>
+            {m.content}
+          </div>
+        </div>)}
+        {loading&&<div style={{display:'flex',justifyContent:'flex-start'}}>
+          <div style={{padding:'10px 14px',borderRadius:'14px 14px 14px 4px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.08)',display:'flex',gap:4}}>
+            <span style={{width:6,height:6,borderRadius:'50%',background:'#6366f1',animation:'aiDot 1.4s ease-in-out infinite',animationDelay:'0s'}}/>
+            <span style={{width:6,height:6,borderRadius:'50%',background:'#6366f1',animation:'aiDot 1.4s ease-in-out infinite',animationDelay:'.2s'}}/>
+            <span style={{width:6,height:6,borderRadius:'50%',background:'#6366f1',animation:'aiDot 1.4s ease-in-out infinite',animationDelay:'.4s'}}/>
+          </div>
+        </div>}
+      </div>
+
+      {/* Input */}
+      <div style={{padding:'10px 14px',borderTop:'1px solid rgba(99,102,241,.15)',background:'rgba(0,0,0,.2)',display:'flex',gap:8}}>
+        <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}} placeholder={apiKey?'Спросите что-нибудь...':'Сначала укажите API ключ в ⚙️'} disabled={loading} style={{flex:1,padding:'10px 14px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(99,102,241,.2)',borderRadius:12,color:'#e0e0ff',fontSize:12,outline:'none',transition:'border-color .2s'}}/>
+        <button onClick={sendMessage} disabled={loading||!input.trim()} style={{padding:'10px 16px',background:loading||!input.trim()?'rgba(99,102,241,.2)':'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:12,color:'#fff',cursor:loading?'wait':'pointer',fontSize:14,transition:'all .2s',opacity:loading||!input.trim()?.5:1}}>→</button>
+      </div>
+
+      {/* Quick suggestions */}
+      {msgs.length<=1&&!loading&&<div style={{padding:'0 14px 12px',display:'flex',flexWrap:'wrap',gap:6}}>
+        {['Статус портфеля','Топ-5 проектов по выручке','Загрузка команды','Что такое BPM-4?'].map(q=><span key={q} onClick={()=>{setInput(q);}} style={{padding:'4px 10px',background:'rgba(99,102,241,.1)',border:'1px solid rgba(99,102,241,.2)',borderRadius:20,fontSize:10,color:'#a5b4fc',cursor:'pointer',transition:'all .2s'}} onMouseOver={e=>{e.target.style.background='rgba(99,102,241,.25)';}} onMouseOut={e=>{e.target.style.background='rgba(99,102,241,.1)';}}>{q}</span>)}
+      </div>}
+    </div>
+
+    {/* Floating button */}
+    <div onClick={()=>setOpen(v=>!v)} style={{position:'fixed',bottom:24,right:24,zIndex:10001,width:56,height:56,borderRadius:'50%',background:open?'linear-gradient(135deg,#4f46e5,#6366f1)':'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',boxShadow:open?'0 4px 16px rgba(99,102,241,.3)':'0 4px 24px rgba(99,102,241,.5),0 0 40px rgba(99,102,241,.2)',transition:'all .3s cubic-bezier(.4,0,.2,1)',transform:open?'rotate(0deg)':'rotate(0deg)',..._pulse}}>
+      <span style={{fontSize:24,transition:'transform .3s',transform:open?'rotate(90deg)':'rotate(0deg)'}}>{open?'✕':'🤖'}</span>
+    </div>
+  </>;
 }
 
 const root=ReactDOM.createRoot(document.getElementById('root'));
