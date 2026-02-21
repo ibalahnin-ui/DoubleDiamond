@@ -1633,10 +1633,6 @@ function useStore(){
 
   /* Helper: compute data richness score */
   const _dataScore=(d)=>{if(!d||typeof d!=='object')return 0;return (d.projects||[]).length*10+(d.clients||[]).length*5+(d.persons||[]).length*3+(d.projects||[]).reduce((s,p)=>(s+(p.payments||[]).length*2+(p.tasks||[]).length+(p.phases||[]).length+(p.project_overheads||[]).length*2+(p.time_entries||[]).length*2+(p.overheads||[]).length+(p.timeEntries||[]).length),0);};
-    if(!d||typeof d!=='object')return 0;
-    return (d.projects||[]).length*10+(d.clients||[]).length*5+(d.persons||[]).length*3
-      +(d.projects||[]).reduce((s,p)=>(s+(p.payments||[]).length+(p.tasks||[]).length+(p.phases||[]).length+(p.overheads||[]).length+(p.timeEntries||[]).length),0);
-  };
 
   /* Load from Supabase on start — SMART MERGE: prefer richer dataset */
   useEffect(()=>{
