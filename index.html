@@ -7021,6 +7021,14 @@ function FinanceMachineView({store,goProject}){
   };
   const [kbForm,setKbForm]=useState(()=>{const n=new Date();return{name:'',amount_plan:'',amount_fact:'',month:n.getFullYear()+'-'+(n.getMonth()+1<10?'0':'')+(n.getMonth()+1),cf_type:'OCF',notes:''};});
   const [kbEditId,setKbEditId]=useState(null);
+  /* === Hoisted hooks from conditional IIFEs (React rules of hooks) === */
+  const [curStream,setCurStream]=useState(1);
+  const [groupByUser,setGroupByUser]=useState(false);
+  const _icfDealDef={date:'',user_name:'',company:'',company_id:'',product:'',cost:'',commission:'',received:'',tax_rate:6,tax_amount:0,earned:0,pay_system:'',seller:'',is_forecast:false};
+  const [nf,setNf]=useState({..._icfDealDef});
+  const [sellerCustom,setSellerCustom]=useState(false);
+  const [editBal,setEditBal]=useState(null);
+  const [showDetail,setShowDetail]=useState(false);
 
   /* === DATA & COMPUTATION === */
   {
@@ -9077,8 +9085,8 @@ function FinanceMachineView({store,goProject}){
         const TAX_RATES=[{v:0,l:'0%'},{v:11,l:'11%'},{v:20,l:'20%'},{v:22,l:'22%'}];
         const STREAM_OPTS=[1,2,3,4,5,6,7,8,9,10];
         /* Субвкладка потока: 0 = «Все потоки», -1 = «Разовые покупки» (не-студенты) */
-        const [curStream,setCurStream]=React.useState(1);
-        const [groupByUser,setGroupByUser]=React.useState(false);
+        /* curStream hoisted to top */
+        /* groupByUser hoisted to top */
         /* Не-студенты для текущего проекта */
         const _nonStudents=(store.data.icf_non_students||{})[curProj]||[];
         const _isNS=(name)=>_nonStudents.includes(name);
@@ -9105,12 +9113,12 @@ function FinanceMachineView({store,goProject}){
         const uniqClients=new Set(_icfDeals.map(d=>d.user_name).filter(Boolean));
 
         /* Группировка по пользователю */
-        const grouped=React.useMemo(()=>{
+        const grouped=(()=>{
           if(!groupByUser)return null;
           const m={};
           _icfDeals.forEach(d=>{const k=d.user_name||'—';if(!m[k])m[k]=[];m[k].push(d);});
           return Object.entries(m).sort((a,b)=>a[0].localeCompare(b[0]));
-        },[groupByUser,_icfDeals]);
+        })();
 
         /* === Helpers === */
         const _is={border:'none',background:'transparent',fontSize:10,padding:'2px 3px',width:'100%',outline:'none'};
@@ -9225,9 +9233,9 @@ function FinanceMachineView({store,goProject}){
           {(curStream>0||curStream===-1)&&<div>
           {/* Форма новой сделки */}
           {(()=>{
-            const _def={date:'',user_name:'',company:'',company_id:'',product:'',cost:'',commission:'',received:'',tax_rate:6,tax_amount:0,earned:0,pay_system:'',seller:'',is_forecast:false};
-            const [nf,setNf]=React.useState({..._def});
-            const [sellerCustom,setSellerCustom]=React.useState(false);
+            /* _def hoisted as _icfDealDef */
+            /* nf hoisted to top */
+            /* sellerCustom hoisted to top */
             const _sellers=[...new Set(_allProjDeals.map(d=>d.seller).filter(Boolean))].sort();
             const updNf=(k,v)=>setNf(p=>{
               const n={...p,[k]:v};
@@ -9254,7 +9262,7 @@ function FinanceMachineView({store,goProject}){
               const cost=Number(nf.cost)||0;const comm=Number(nf.commission)||0;const recv=Number(nf.received)||0;
               const taxPct=_effTax(nf.tax_rate);const taxAmt=Number(nf.tax_amount)||Math.round(recv*taxPct/100);const earned=Number(nf.earned)||(recv-taxAmt);
               store.addIcfDeal({icf_project:curProj,stream_number:curStream>0?curStream:1,is_forecast:!!nf.is_forecast,date:nf.date||'',user_name:nf.user_name,company:nf.company||'',company_id:cid||'',product:nf.product||'',cost,commission:comm,received:recv,tax_rate:Number(nf.tax_rate)||0,tax_amount:taxAmt,earned,pay_system:nf.pay_system||'',seller:nf.seller||''});
-              setNf({..._def});
+              setNf({..._icfDealDef});
             };
             return <div style={{background:'var(--bg1)',border:'1px solid var(--border)',borderRadius:8,padding:10,marginBottom:10}}>
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
@@ -9469,7 +9477,7 @@ function FinanceMachineView({store,goProject}){
     });
 
     /* === Edit start balance === */
-    const [editBal,setEditBal]=React.useState(null);
+    /* editBal hoisted to top */
     const saveBal=(val)=>{
       const v=Number(val)||0;
       const kb=store.data.kb_budget||[];
@@ -9480,7 +9488,7 @@ function FinanceMachineView({store,goProject}){
     };
 
     /* Detail toggle */
-    const [showDetail,setShowDetail]=React.useState(false);
+    /* showDetail hoisted to top */
 
     return <div>
       <div className="dash-card" style={{padding:12}}>
@@ -9833,6 +9841,12 @@ function SalesMarketingView({store,goProject}){
   const [crmDrag,setCrmDrag]=useState(null);
   const [crmNew,setCrmNew]=useState(null);
   const [crmEdit,setCrmEdit]=useState(null);
+  /* === Hoisted hooks from notion_verify IIFE === */
+  const [nvFilter,setNvFilter]=useState('');
+  const [nvStageFilter,setNvStageFilter]=useState('all');
+  const [nvSelected,setNvSelected]=useState(new Set());
+  const [nvEditId,setNvEditId]=useState(null);
+  const [nvSort,setNvSort]=useState('name');
   const [rgPopup,setRgPopup]=useState(null); /* {items:[{id,code,name,amount}], x, y} */
   const yr=new Date().getFullYear();
   const MONTHS=['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'];
@@ -10583,11 +10597,11 @@ function SalesMarketingView({store,goProject}){
       const NOTION_STAGES=['','Накопан в академии','Накопан в клубе','Накопан у Бодрейшего','Накопан в ABM','Накопан на ивенте или партнером','MQL назначен созвон','SQL назначен созвон','SQL требуется прогрев','Пишем КП','КП выслано','Защита обсуждается','Защита поставлена','Дожим','Дослать материалы','Вернуться позже','Нет ответа','Устное Да','Договор сделан','Счета выставлены','Выиграно','Прошел созвон по TWWW','Выиграно в прошл. периоды','Проиграно RFR','RFR Выслана матрица','RFR Матрица презентована','RFR Выиграно','RNG Написать кейс','RNG Выявлена потребность','RNG КП выслано','RNG Защита проведена','RNG Проиграно','RNG Выиграно','RNG Кейс написан','RNG Выиграно в прош. периоды','RNG Счета выставлены'];
       const REQ_TYPES=['','Продажи основных','Продажи сессий','Продажи корп. обучений','Допродажи','Продажи абонентки'];
       const PRIORITIES=['','Высокий','Средний','Низкий'];
-      const [nvFilter,setNvFilter]=React.useState('');
-      const [nvStageFilter,setNvStageFilter]=React.useState('all');
-      const [nvSelected,setNvSelected]=React.useState(new Set());
-      const [nvEditId,setNvEditId]=React.useState(null);
-      const [nvSort,setNvSort]=React.useState('name');
+      /* const [nvFilter,setNvFilter] hoisted to top */
+      /* const [nvStageFilter,setNvStageFilter] hoisted to top */
+      /* const [nvSelected,setNvSelected] hoisted to top */
+      /* const [nvEditId,setNvEditId] hoisted to top */
+      /* const [nvSort,setNvSort] hoisted to top */
       const filtered=staging.filter(d=>{
         if(nvFilter&&!d.name.toLowerCase().includes(nvFilter.toLowerCase()))return false;
         if(nvStageFilter==='filled')return d.notion_stage;
