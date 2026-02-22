@@ -1817,6 +1817,27 @@ function useStore(){
       }).catch(e=>{console.warn('Supabase fetch failed:',e);setSbStatus('error');setSbLoaded(true);});
   },[]);
 
+  /* === Daily Supabase Backup: save one snapshot per day to app_data_history === */
+  useEffect(()=>{
+    if(!_sb||!sbLoaded||_syncMode==='local')return;
+    if(sbStatus==='error')return;
+    const today=new Date().toISOString().slice(0,10);
+    /* Check if today's backup already exists */
+    _sb.from('app_data_history').select('id').eq('snapshot_date',today).limit(1)
+      .then(({data:rows,error})=>{
+        if(error){console.warn('[Backup] Check failed:',error);return;}
+        if(rows&&rows.length>0){console.log('[Backup] Today\'s snapshot already exists, skipping');return;}
+        /* No backup for today — create one */
+        const _saveScore=_dataScore(data);
+        if(_saveScore<50){console.warn('[Backup] Data looks like SEED (score='+_saveScore+'), skipping backup');return;}
+        _sb.from('app_data_history').insert({snapshot_date:today,payload:data,note:'auto-daily'})
+          .then(({error:ie})=>{
+            if(ie)console.warn('[Backup] Save failed:',ie);
+            else console.log('[Backup] Daily snapshot saved for',today);
+          });
+      });
+  },[sbLoaded,sbStatus]);
+
   /* Save: localStorage + Supabase — ONLY after Supabase has loaded (prevents SEED overwrite) */
   useEffect(()=>{
     /* CRITICAL: In online mode, NEVER save until Supabase has loaded.
