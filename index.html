@@ -1818,22 +1818,28 @@ function useStore(){
   },[]);
 
   /* === Daily Supabase Backup: save one snapshot per day to app_data_history === */
+  const [lastBackupDate,setLastBackupDate]=useState(null);
   useEffect(()=>{
     if(!_sb||!sbLoaded||_syncMode==='local')return;
     if(sbStatus==='error')return;
     const today=new Date().toISOString().slice(0,10);
+    /* Fetch latest backup date first */
+    _sb.from('app_data_history').select('snapshot_date').order('snapshot_date',{ascending:false}).limit(1)
+      .then(({data:latest})=>{
+        if(latest&&latest.length>0)setLastBackupDate(latest[0].snapshot_date);
+      });
     /* Check if today's backup already exists */
     _sb.from('app_data_history').select('id').eq('snapshot_date',today).limit(1)
       .then(({data:rows,error})=>{
         if(error){console.warn('[Backup] Check failed:',error);return;}
-        if(rows&&rows.length>0){console.log('[Backup] Today\'s snapshot already exists, skipping');return;}
+        if(rows&&rows.length>0){console.log('[Backup] Today\'s snapshot already exists, skipping');setLastBackupDate(today);return;}
         /* No backup for today — create one */
         const _saveScore=_dataScore(data);
         if(_saveScore<50){console.warn('[Backup] Data looks like SEED (score='+_saveScore+'), skipping backup');return;}
         _sb.from('app_data_history').insert({snapshot_date:today,payload:data,note:'auto-daily'})
           .then(({error:ie})=>{
             if(ie)console.warn('[Backup] Save failed:',ie);
-            else console.log('[Backup] Daily snapshot saved for',today);
+            else{console.log('[Backup] Daily snapshot saved for',today);setLastBackupDate(today);}
           });
       });
   },[sbLoaded,sbStatus]);
@@ -3882,7 +3888,7 @@ function useStore(){
     return (data.incidents||[]).filter(inc=>inc.kb_article_id===articleId);
   };
 
-  return {data,stats,toast,sbStatus,sbLoaded,reconnectSb,hashPwd,addUser,updateUser,deleteUser,resetUserPassword,validateLogin,addClient,addPerson,addProject,updateProject,activateProject,addAssignment,removeAssignment,addTrack,addTask,addBlocker,resolveBlocker,addPayment,markPaymentAccrued,markPaymentPaid,markAllPaymentsPaid,addPnlOverride,deletePnlOverride,addRecommendation,addRecommendationsBatch,updateRecommendationStatus,deleteRecommendation,addOverhead,updateOverhead,removeOverhead,addKbBudgetItem,updateKbBudgetItem,deleteKbBudgetItem,addHrBudgetItem,updateHrBudgetItem,deleteHrBudgetItem,addOhRegistryItem,updateOhRegistryItem,deleteOhRegistryItem,toggleOhRegistryVerified,clearOverheadRegistry,syncOhToProject,syncOhToKbBudget,approveOhRequest,rejectOhRequest,updateOhRequest,markOhDisbursed,markOhRequestDisbursed,bulkImportOhRegistry,runFkDoubleCheck,addTimeEntry,updateTimeEntry,deleteTimeEntry,autoScheduleTracks,forceScheduleTracks,addGoal,addSubGoal,deleteSubGoal,addSubject,exportData,updateClient,updatePerson,deletePerson,updateTrackDates,updateTrackStatus,deleteTrack,updateTaskStatus,updateTask,deleteTask,deleteProject,updatePayment,deletePayment,advanceStage,importData,addProjectType,deleteProjectType,addDocument,deleteDocument,updateAdminScale,updatePhaseDoc,addInsight,deleteInsight,linkTrackToSubject,unlinkTrackFromSubject,deleteGoal,deleteSubject,linkTrackToInsight,unlinkTrackFromInsight,addTrackDep,removeTrackDep,upsertWeeklyHours,deleteWeeklyHours,lockProject,unlockProject,earlyCompleteProject,addCrmDeal,updateCrmDeal,deleteCrmDeal,addIcfDeal,updateIcfDeal,deleteIcfDeal,bulkImportIcfDeals,toggleNonStudent,getMetricsMap,setMetricsMap,updateMetricsNode,addMetricsNode,deleteMetricsNode,addMetricsLink,deleteMetricsLink,addStagingDeal,updateStagingDeal,deleteStagingDeal,transferStagingToCrm,addCrmStage,updateCrmStage,deleteCrmStage,reorderCrmStage,addChatChannel,updateChatChannel,deleteChatChannel,addChatMessage,updateChatMessage,deleteChatMessage,addChatReaction,pinChatMessage,setChatUser,addNotification,markNotificationRead,markAllNotificationsRead,deleteNotification,updatePhaseDates,startPhase,setPhaseStatus,holdProject,resumeProject,addMilestone,updateMilestone,deleteMilestone,completeMilestone,addITColumn,removeITColumn,updateITColumnColor,addITColumnItem,removeITColumnItem,addCardLink,removeCardLink,_ensureITCols,IT_DEFAULT_COLS,BASE_TASK_STATUSES,getGlobalStatuses,getProjectStatuses,addGlobalTaskStatus,removeGlobalTaskStatus,updateGlobalTaskStatus,renameBaseStatus,addLocalTaskStatus,removeLocalTaskStatus,moveGlobalStatusOrder,moveLocalStatusOrder,addIncident,updateIncident,resolveIncident,getProjectIncidents,getKbArticleIncidents};
+  return {data,stats,toast,sbStatus,sbLoaded,lastBackupDate,reconnectSb,hashPwd,addUser,updateUser,deleteUser,resetUserPassword,validateLogin,addClient,addPerson,addProject,updateProject,activateProject,addAssignment,removeAssignment,addTrack,addTask,addBlocker,resolveBlocker,addPayment,markPaymentAccrued,markPaymentPaid,markAllPaymentsPaid,addPnlOverride,deletePnlOverride,addRecommendation,addRecommendationsBatch,updateRecommendationStatus,deleteRecommendation,addOverhead,updateOverhead,removeOverhead,addKbBudgetItem,updateKbBudgetItem,deleteKbBudgetItem,addHrBudgetItem,updateHrBudgetItem,deleteHrBudgetItem,addOhRegistryItem,updateOhRegistryItem,deleteOhRegistryItem,toggleOhRegistryVerified,clearOverheadRegistry,syncOhToProject,syncOhToKbBudget,approveOhRequest,rejectOhRequest,updateOhRequest,markOhDisbursed,markOhRequestDisbursed,bulkImportOhRegistry,runFkDoubleCheck,addTimeEntry,updateTimeEntry,deleteTimeEntry,autoScheduleTracks,forceScheduleTracks,addGoal,addSubGoal,deleteSubGoal,addSubject,exportData,updateClient,updatePerson,deletePerson,updateTrackDates,updateTrackStatus,deleteTrack,updateTaskStatus,updateTask,deleteTask,deleteProject,updatePayment,deletePayment,advanceStage,importData,addProjectType,deleteProjectType,addDocument,deleteDocument,updateAdminScale,updatePhaseDoc,addInsight,deleteInsight,linkTrackToSubject,unlinkTrackFromSubject,deleteGoal,deleteSubject,linkTrackToInsight,unlinkTrackFromInsight,addTrackDep,removeTrackDep,upsertWeeklyHours,deleteWeeklyHours,lockProject,unlockProject,earlyCompleteProject,addCrmDeal,updateCrmDeal,deleteCrmDeal,addIcfDeal,updateIcfDeal,deleteIcfDeal,bulkImportIcfDeals,toggleNonStudent,getMetricsMap,setMetricsMap,updateMetricsNode,addMetricsNode,deleteMetricsNode,addMetricsLink,deleteMetricsLink,addStagingDeal,updateStagingDeal,deleteStagingDeal,transferStagingToCrm,addCrmStage,updateCrmStage,deleteCrmStage,reorderCrmStage,addChatChannel,updateChatChannel,deleteChatChannel,addChatMessage,updateChatMessage,deleteChatMessage,addChatReaction,pinChatMessage,setChatUser,addNotification,markNotificationRead,markAllNotificationsRead,deleteNotification,updatePhaseDates,startPhase,setPhaseStatus,holdProject,resumeProject,addMilestone,updateMilestone,deleteMilestone,completeMilestone,addITColumn,removeITColumn,updateITColumnColor,addITColumnItem,removeITColumnItem,addCardLink,removeCardLink,_ensureITCols,IT_DEFAULT_COLS,BASE_TASK_STATUSES,getGlobalStatuses,getProjectStatuses,addGlobalTaskStatus,removeGlobalTaskStatus,updateGlobalTaskStatus,renameBaseStatus,addLocalTaskStatus,removeLocalTaskStatus,moveGlobalStatusOrder,moveLocalStatusOrder,addIncident,updateIncident,resolveIncident,getProjectIncidents,getKbArticleIncidents};
 }
 
 /* ===== FORMS ===== */
@@ -13430,10 +13436,16 @@ function App(){
           <span>🚪</span><span>Выход</span>
         </div>
       </div>}
-      {/* Supabase status indicator */}
-      <div onClick={()=>setShowSbConfig(true)} style={{position:'absolute',bottom:12,left:12,right:12,padding:'8px 10px',borderRadius:8,background:'rgba(255,255,255,0.05)',cursor:'pointer',display:'flex',alignItems:'center',gap:8,fontSize:11,color:'#b0b0cc'}}>
-        <span style={{width:8,height:8,borderRadius:'50%',background:_sbDot[store.sbStatus]||'#6b7280',flexShrink:0}}/>
-        <span>{_sbLabel[store.sbStatus]||store.sbStatus}</span>
+      {/* Supabase status indicator + backup */}
+      <div onClick={()=>setShowSbConfig(true)} style={{position:'absolute',bottom:12,left:12,right:12,padding:'8px 10px',borderRadius:8,background:'rgba(255,255,255,0.05)',cursor:'pointer',display:'flex',flexDirection:'column',gap:4,fontSize:11,color:'#b0b0cc'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <span style={{width:8,height:8,borderRadius:'50%',background:_sbDot[store.sbStatus]||'#6b7280',flexShrink:0}}/>
+          <span>{_sbLabel[store.sbStatus]||store.sbStatus}</span>
+        </div>
+        {store.lastBackupDate&&<div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,color:'#8b8ba0',paddingLeft:16}}>
+          <span style={{color:'#22c55e'}}>💾</span>
+          <span>Бэкап: {store.lastBackupDate===new Date().toISOString().slice(0,10)?'сегодня':store.lastBackupDate}</span>
+        </div>}
       </div>
     </div>
     <div className="main">
